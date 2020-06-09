@@ -617,7 +617,7 @@ namespace DiscordBot
                 }
 
                 ByteSize bytesize = ByteSize.FromBytes(size);
-                string s = "Finish!" +
+                string s = "Backup : Finish!" +
                     $" `{bytesize.KibiBytes:n0} KB / {Math.Round(DateTime.Now.Subtract(starttime).TotalSeconds, 2)} sec`";
                 await msg.ModifyAsync(s);
 
@@ -636,7 +636,7 @@ namespace DiscordBot
                     return;
                 }
 
-                await msg.ModifyAsync($"{s}\n\nFinish! `{Math.Round(DateTime.Now.Subtract(starttime).TotalSeconds, 2)} sec`");
+                await msg.ModifyAsync($"{s}\n\nGit Push : Finish! `{Math.Round(DateTime.Now.Subtract(starttime).TotalSeconds, 2)} sec`");
 
                 await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
             }
