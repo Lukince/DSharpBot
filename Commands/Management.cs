@@ -618,7 +618,7 @@ namespace DiscordBot
 
                 ByteSize bytesize = ByteSize.FromBytes(size);
                 string s = "Finish!" +
-                    $" `{bytesize.KibiBytes:n0} KB / {DateTime.Now.Subtract(starttime).TotalSeconds} sec`";
+                    $" `{bytesize.KibiBytes:n0} KB / {Math.Round(DateTime.Now.Subtract(starttime).TotalSeconds, 2)} sec`";
                 await msg.ModifyAsync(s);
 
                 await Task.Delay(1000);
@@ -636,7 +636,7 @@ namespace DiscordBot
                     return;
                 }
 
-                await msg.ModifyAsync($"{s}\n\nFinish! `{DateTime.Now.Subtract(starttime).TotalSeconds} sec`");
+                await msg.ModifyAsync($"{s}\n\nFinish! `{Math.Round(DateTime.Now.Subtract(starttime).TotalSeconds, 2)} sec`");
 
                 await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
             }
