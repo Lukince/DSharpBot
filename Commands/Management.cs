@@ -21,6 +21,7 @@ using static DiscordBot.Index;
 using static DiscordBot.Utils;
 using static DiscordBot.Variable;
 using NGit.Storage.File;
+using System.Diagnostics;
 
 namespace DiscordBot
 {
@@ -588,16 +589,6 @@ namespace DiscordBot
             }
         }
 
-        private async Task Commit(CommandContext ctx, string commit)
-        {
-            string directory = "https://github.com/Lukince/DSharpBot.git";
-            Git git = new Git(new FileRepository(directory));
-            git.Add().AddFilepattern("*.*").Call();
-            git.Commit().SetMessage(commit).Call();
-            git.Push().SetRemote(commit).Call();
-            
-        }
-
         [Command("Backup")]
         public async Task Backup(CommandContext ctx, params string[] message)
         {
@@ -638,7 +629,7 @@ namespace DiscordBot
 
                 try
                 {
-                    Commit(ctx, commit);
+                    Process.Start("Backup.bat").WaitForExit();
                 }
                 catch (Exception e)
                 {
