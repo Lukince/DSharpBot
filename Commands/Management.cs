@@ -598,7 +598,7 @@ namespace DiscordBot
                 // this changes from the user folder that PowerShell starts up with to your git repository
                 powershell.AddScript($"cd {directory}");
 
-                powershell.AddScript(@"git init");
+                //powershell.AddScript(@"git init");
                 powershell.AddScript(@"git add *");
                 powershell.AddScript(@$"git commit -m '{commit}'");
                 powershell.AddScript(@"git push");
