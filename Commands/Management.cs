@@ -590,10 +590,9 @@ namespace DiscordBot
         }
 
         [Command("Backup")]
-        public async Task Backup(CommandContext ctx, params string[] message)
+        public async Task Backup(CommandContext ctx)
         {
             DateTime starttime = DateTime.Now;
-            string commit = string.Join(" ", message);
             var msg = await ctx.RespondAsync("Backup...");
             long size = 0;
 
@@ -619,7 +618,7 @@ namespace DiscordBot
 
                 ByteSize bytesize = ByteSize.FromBytes(size);
                 string s = "Finish!" +
-                    $" `{bytesize.KibiBytes:n0} KB / {DateTime.Now.Subtract(starttime).TotalMilliseconds}ms`";
+                    $" `{bytesize.KibiBytes:n0} KB / {DateTime.Now.Subtract(starttime).TotalSeconds} sec`";
                 await msg.ModifyAsync(s);
 
                 await Task.Delay(1000);
@@ -637,7 +636,7 @@ namespace DiscordBot
                     return;
                 }
 
-                await msg.ModifyAsync($"{s}\n\nFinish! `{DateTime.Now.Subtract(starttime).TotalMilliseconds}ms`");
+                await msg.ModifyAsync($"{s}\n\nFinish! `{DateTime.Now.Subtract(starttime).TotalSeconds} sec`");
 
                 await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
             }
