@@ -11,17 +11,16 @@ using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Scripting.Hosting;
 using Newtonsoft.Json;
 using System;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Management.Automation;
 using System.Net;
 using System.Threading.Tasks;
+using NGit.Api;
 using static DiscordBot.Account;
 using static DiscordBot.Index;
 using static DiscordBot.Utils;
 using static DiscordBot.Variable;
+using NGit.Storage.File;
 
 namespace DiscordBot
 {
@@ -591,22 +590,12 @@ namespace DiscordBot
 
         private async Task Commit(CommandContext ctx, string commit)
         {
-            string directory = @"D:\Backup\DSharpBot\"; // directory of the git repository
-
-            using (PowerShell powershell = PowerShell.Create())
-            {
-                // this changes from the user folder that PowerShell starts up with to your git repository
-                powershell.AddScript($"cd {directory}");
-
-                //powershell.AddScript(@"git init");
-                powershell.AddScript(@"git add *");
-                powershell.AddScript(@$"git commit -m '{commit}'");
-                powershell.AddScript(@"git push");
-
-                Collection<PSObject> results = powershell.Invoke();
-
-                ctx.Client.DebugLogger.LogMessage(DSharpPlus.LogLevel.Info, "PowerShell", results.ToString(), DateTime.Now);
-            }
+            string directory = "https://github.com/Lukince/DSharpBot.git";
+            Git git = new Git(new FileRepository(directory));
+            git.Add().AddFilepattern("*.*").Call();
+            git.Commit().SetMessage(commit).Call();
+            git.Push().SetRemote(commit).Call();
+            
         }
 
         [Command("Backup")]
@@ -647,7 +636,15 @@ namespace DiscordBot
                 starttime = DateTime.Now;
                 await msg.ModifyAsync($"{s}\n\nGit Pusing...");
 
-                Commit(ctx, commit);
+                try
+                {
+                    Commit(ctx, commit);
+                }
+                catch (Exception e)
+                {
+                    ctx.RespondAsync(e.Message);
+                    return;
+                }
 
                 await msg.ModifyAsync($"{s}\n\nFinish! `{DateTime.Now.Subtract(starttime).TotalMilliseconds}ms`");
 
