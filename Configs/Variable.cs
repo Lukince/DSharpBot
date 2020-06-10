@@ -147,5 +147,10 @@ namespace DiscordBot
 
             public DiscordClient Client;
         }
+
+        DiscordEmoji[] RASPVariable =
+        {
+            DiscordEmoji.FromName();
+        };
     }
 }

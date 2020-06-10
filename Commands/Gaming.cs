@@ -506,5 +506,20 @@ namespace DiscordBot
                 }
             }
         }
+
+        [Group("가위바위보")]
+        class RSPGame
+        {
+            private async Task RSP(CommandContext ctx, int user)
+            {
+                
+            }
+
+            [Command("바위")]
+            public async Task RSPGame_Rock(CommandContext ctx)
+            {
+                
+            }
+        }
     }
 }

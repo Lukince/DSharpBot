@@ -526,12 +526,22 @@ namespace DiscordBot
 
             string commandlist = string.Empty;
 
-            foreach (Command c in command.Values.ToArray())
+            foreach (Command c in command.Values.ToArray()
+                .Where(l => !l.IsHidden))
             {
                 commandlist += $"`{c.Name}` ";
             }
 
             dmb.AddField("Command List", commandlist);
+
+            commandlist = string.Empty;
+            foreach (Command c in command.Values.ToArray()
+                .Where(l => l.IsHidden))
+            {
+                commandlist += $"`{c.Name} `";
+            }
+
+            dmb.AddField("Hidden Commands", commandlist);
 
             await ctx.RespondAsync(embed: dmb.Build());
         }
