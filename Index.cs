@@ -8,7 +8,6 @@ using DSharpPlus.Interactivity;
 using DSharpPlus.VoiceNext;
 using System;
 using System.IO;
-using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 using static DiscordBot.Variable;
 
@@ -61,8 +60,13 @@ namespace DiscordBot
                         string log = $"\n{DateTime.Now} : {e.Guild.Name}에서 {e.Channel.Name}에 {e.Author.Username}님이 {e.Message.Content}를 사용하였습니다.";
                         discord.DebugLogger.LogMessage(LogLevel.Debug, e.Guild.Name, $"{e.Author.Username}#{e.Author.Discriminator} #{e.Channel.Name}:{e.Message.Content}", DateTime.Now);
                         File.AppendAllText($"DebugLog/{StartDate}.txt", log);
+
+                        if (e.Message.Content.Trim() == "라히야")
+                        {
+                            await e.Message.RespondAsync("네? 저 부르셨나요?");
+                        }
                     }
-                    if (e.Message.Content.StartsWith("라히야 관리자"))
+                    else if (e.Message.Content.StartsWith("라히야 관리자"))
                     {
                         DiscordUser Owner = e.Client.CurrentApplication.Owner;
                         await e.Channel.SendMessageAsync($"{Owner.Username}#{Owner.Discriminator}");
@@ -108,22 +112,22 @@ namespace DiscordBot
 
         private async Task Command_Errored(CommandErrorEventArgs e)
         {
+            if (e.Context.User == e.Context.Client.CurrentApplication.Owner)
+                return;
+
             if (e.Command != null)
             {
                 if (e.Command.Description == "NeedManageMessages" && e.Exception is ChecksFailedException)
                     await e.Context.RespondAsync("라히는 다음 권한이 필요해요!\n" +
                         "```메시지 관리권한```");
-                else if (e.Exception is InvalidOperationException)
+                else if (e.Context.Message.Content.StartsWith("라히야 큐브"))
                 {
-                    if (e.Context.Message.Content.StartsWith("라히야 큐브"))
-                    {
-                        HelpCommand helpCommand = new HelpCommand();
-                        await helpCommand.Cube(e.Context);
-                        Console.WriteLine(e.Exception.ToString());
-                    }
+                    HelpCommand helpCommand = new HelpCommand();
+                    await helpCommand.Cube(e.Context);
+                    Console.WriteLine(e.Exception.ToString());
                 }
                 //else
-                    //await e.Context.Channel.SendMessageAsync(e.Exception.Message);
+                //await e.Context.Channel.SendMessageAsync(e.Exception.Message);
             }
             else
             {
@@ -133,7 +137,7 @@ namespace DiscordBot
                     Color = DiscordColor.Red,
                     Timestamp = DateTime.Now,
                     Footer = GetFooter(e.Context),
-                    Description = "요청하신 명령어를 찾을수 없습니다!"
+                    Description = $"요청하신 명령어 `{e.Context.Message.Content}`(을)를 찾을수 없습니다!"
                 };
 
                 dmb.AddField("Error with CommandNotFoundException", "[라히야 추가 (기능과 설명)]으로 추가요청할 수 있습니다!");

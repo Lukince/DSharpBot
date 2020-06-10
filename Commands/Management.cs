@@ -22,6 +22,10 @@ using static DiscordBot.Utils;
 using static DiscordBot.Variable;
 using NGit.Storage.File;
 using System.Diagnostics;
+using System.Runtime.InteropServices.ComTypes;
+using DSharpPlus.Interactivity;
+using System.Linq.Expressions;
+using System.Text;
 
 namespace DiscordBot
 {
@@ -654,6 +658,102 @@ namespace DiscordBot
             {
                 Console.WriteLine(e.Message);
                 await msg.ModifyAsync("Fail!");
+            }
+        }
+
+        [Command("#GitTool")]
+        public async Task GitTool(CommandContext ctx)
+        {
+            await ctx.RespondAsync("Now in Git Mode");
+
+            while(true)
+            {
+                try {
+                var interactivity = ctx.Client.GetInteractivityModule();
+                var reactions = await interactivity.WaitForMessageAsync(l => l.Author == ctx.User, TimeSpan.FromMinutes(5));
+
+                    if (reactions != null)
+                    {
+                        if (reactions.Message.Content == "#Exit")
+                        {
+                            await ctx.RespondAsync("Now in Normal Mode");
+                            return;
+                        }
+
+                        var proc = new Process
+                        {
+                            StartInfo = new ProcessStartInfo
+                            {
+                                FileName = "git",
+                                Arguments = $"{reactions.Message.Content}",
+                                UseShellExecute = false,
+                                RedirectStandardOutput = true,
+                                CreateNoWindow = true
+                            }
+                        };
+
+                        proc.Start();
+
+                        string Output = string.Empty;
+                        string Error = string.Empty;
+
+                        while (!proc.StandardOutput.EndOfStream)
+                        {
+                            Output += proc.StandardOutput.ReadLine();
+                        }
+
+                        /*
+                        while (!proc.StandardError.EndOfStream)
+                        {
+                            Error += proc.StandardError.ReadLine();
+                        }*/
+
+                        if (Output == string.Empty)
+                        {
+                            await ctx.RespondAsync("Succeed");
+                            continue;
+                        }
+
+                        if (Output.Length < 1024)
+                        {
+                            DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
+                            {
+                                Title = "Output",
+                                Color = DiscordColor.Cyan,
+                                Timestamp = DateTime.Now,
+                                Footer = GetFooter(ctx)
+                            };
+
+                            dmb.AddField($"> {reactions.Message.Content}", Output);
+
+                            await ctx.RespondAsync(embed: dmb.Build());
+                        }
+                        else
+                        {
+                            File.WriteAllText("Output.txt", Output);
+                            await ctx.RespondWithFileAsync(content: "Output File:", file_path: "Output.txt");
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    try
+                    {
+                        DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
+                        {
+                            Title = "Error!",
+                            Color = DiscordColor.Red,
+                            Timestamp = DateTime.Now,
+                            Footer = GetFooter(ctx)
+                        };
+
+                        dmb.AddField("Error on", e.ToString());
+                    }
+                    catch (Exception err)
+                    {
+                        await ctx.RespondAsync(err.ToString());
+                    }
+                }
             }
         }
     }
