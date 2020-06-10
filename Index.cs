@@ -8,6 +8,7 @@ using DSharpPlus.Interactivity;
 using DSharpPlus.VoiceNext;
 using System;
 using System.IO;
+using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 using static DiscordBot.Variable;
 
@@ -112,10 +113,14 @@ namespace DiscordBot
                 if (e.Command.Description == "NeedManageMessages" && e.Exception is ChecksFailedException)
                     await e.Context.RespondAsync("라히는 다음 권한이 필요해요!\n" +
                         "```메시지 관리권한```");
-                else if (e.Context.Message.Content.StartsWith("라히야 큐브"))
+                else if (e.Exception is InvalidOperationException)
                 {
-                    HelpCommand helpCommand = new HelpCommand();
-                    await Task.Run(() => helpCommand.Cube(e.Context));
+                    if (e.Context.Message.Content.StartsWith("라히야 큐브"))
+                    {
+                        HelpCommand helpCommand = new HelpCommand();
+                        await helpCommand.Cube(e.Context);
+                        Console.WriteLine(e.Exception.ToString());
+                    }
                 }
                 //else
                     //await e.Context.Channel.SendMessageAsync(e.Exception.Message);

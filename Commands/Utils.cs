@@ -526,11 +526,5 @@ namespace DiscordBot
                     await ctx.RespondAsync("알수 없는 언어입니다!\n```사용 가능한 언어 : ko, en, fr, zh-CN, vi 등등```");
             }
         }
-
-        [Command("유튜브"), CheckAdmin, DoNotUse]
-        public async Task Youtube(CommandContext ctx)
-        {
-            
-        } //github 사용해서 backup 커맨드 만들기 - Management.cs 코드 파일만 복사
     }
 }
