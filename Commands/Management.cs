@@ -15,12 +15,10 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
-using NGit.Api;
 using static DiscordBot.Account;
 using static DiscordBot.Index;
 using static DiscordBot.Utils;
 using static DiscordBot.Variable;
-using NGit.Storage.File;
 using System.Diagnostics;
 using System.Runtime.InteropServices.ComTypes;
 using DSharpPlus.Interactivity;
@@ -625,7 +623,7 @@ namespace DiscordBot
                     }
                     else
                     {
-                        location = p[4] + "/" + Path.GetFileName(path);
+                        location = p[5] + "/" + Path.GetFileName(path);
                     }
                     File.Copy(path, "D:/Backup/DSharpBot/" + location, true);
                 }
