@@ -201,8 +201,11 @@ namespace DiscordBot.Commands
                     return;
             }
         }
+    }
 
-        public async Task Cube(CommandContext ctx)
+    public class CommandHelp
+    {
+        public async Task CubeHelp(CommandContext ctx)
         {
             DiscordEmbedBuilder CubeEmbed = new DiscordEmbedBuilder
             {
@@ -217,6 +220,26 @@ namespace DiscordBot.Commands
             CubeEmbed.AddField("라히야 큐브 상점", "큐브를 구매하거나 포션을 살수 있어요!");
 
             await ctx.RespondAsync(embed: CubeEmbed.Build());
+        }
+
+        public async Task EncryptionHelp(CommandContext ctx)
+        {
+            await ctx.RespondAsync("사용법 : 라히야 암호 [암호화/해독] [암호화 옵션] [인코딩 옵션] [내용]\n" +
+                "```암호화 옵션 : Base32, Base64\n" +
+                "인코딩 옵션 : UTF7, UTF8, UTF32, Unicode, ASCII```");
+        }
+
+        public async Task RandomHelp(CommandContext ctx)
+        {
+            await ctx.RespondAsync("랜덤 함수 사용법 : 라히야 랜덤 [최소] [최대] [옵션 : 10]\n" +
+                                         $"```최대, 최소의 값은 ±{int.MaxValue}를 넘을수 없어요!\n" +
+                                         $"옵션 : 2(2진수), 8(8진수), 10(10진수) 16(16진수)```");
+        }
+
+        public async Task ConvertHelp(CommandContext ctx)
+        {
+            await ctx.RespondAsync("사용법 : 라히야 변환 [변환할 내용] [내용의 진수] [변환할 진수]\n" +
+                "```ex) 라히야 변환 255 10 16 => ff를 반환```");
         }
     }
 }

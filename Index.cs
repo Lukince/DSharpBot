@@ -1,4 +1,5 @@
 ﻿using DiscordBot.Commands;
+using DiscordBot.Exceptions;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Exceptions;
@@ -8,6 +9,7 @@ using DSharpPlus.Interactivity;
 using DSharpPlus.VoiceNext;
 using System;
 using System.IO;
+using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 using static DiscordBot.Variable;
 
@@ -19,7 +21,7 @@ namespace DiscordBot
         public CommandsNextModule commands { get; set; }
         public InteractivityModule interactivity { get; private set; }
         public DiscordWebhook webhook { get; private set; }
-        static VoiceNextClient voiceNext;
+        public static VoiceNextClient voiceNext;
 
         public static string StartDate;
         public static bool changePresence = true;
@@ -96,6 +98,8 @@ namespace DiscordBot
                 Timeout = TimeSpan.FromSeconds(60)
             });
 
+            voiceNext = discord.UseVoiceNext();
+
             commands.CommandErrored += Command_Errored;
 
             commands.RegisterCommands<Say>();
@@ -112,8 +116,15 @@ namespace DiscordBot
 
         private async Task Command_Errored(CommandErrorEventArgs e)
         {
-            if (e.Context.User == e.Context.Client.CurrentApplication.Owner)
-                return;
+            DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
+            {
+                Title = "Error",
+                Color = DiscordColor.Red,
+                Timestamp = DateTime.Now,
+                Footer = GetFooter(e.Context)
+            };
+
+            CommandHelp help = new CommandHelp();
 
             if (e.Command != null)
             {
@@ -121,24 +132,48 @@ namespace DiscordBot
                     await e.Context.RespondAsync("라히는 다음 권한이 필요해요!\n" +
                         "```메시지 관리권한```");
                 else if (e.Context.Message.Content.StartsWith("라히야 큐브"))
+                    await help.CubeHelp(e.Context);
+
+                else if (e.Context.Message.Content.StartsWith("라히야 암호"))
                 {
-                    HelpCommand helpCommand = new HelpCommand();
-                    await helpCommand.Cube(e.Context);
-                    Console.WriteLine(e.Exception.ToString());
+                    if (e.Exception is EncryptionException)
+                        await e.Context.RespondAsync("암호화 방식이 맞지 않습니다!");
+                    else if (e.Exception is EncryptionArgumentException)
+                    {
+                        if (e.Exception.Message == "Encryption")
+                            dmb.AddField("EncryptionArgumentException", "암호화 옵션이 잘못되었습니다\n" +
+                                "```사용 가능한 옵션 : Base32, Base64```");
+                        else if (e.Exception.Message == "Encoding")
+                            dmb.AddField("EncryptionArgumentException", "인코딩 옵션이 잘못되었습니다\n" +
+                                "```사용 가능한 옵션 : UTF7, UTF8, UTF32, Unicode, ASCII```");
+                        else
+                            dmb.AddField("EncryptionArgumentException", "알 수 없는 오류가 발생하였습니다!");
+
+                        await e.Context.RespondAsync(embed: dmb.Build());
+                    }
+                    else
+                        await help.EncryptionHelp(e.Context);
                 }
-                //else
-                //await e.Context.Channel.SendMessageAsync(e.Exception.Message);
+
+                else if (e.Command.Name == "랜덤")
+                    await help.RandomHelp(e.Context);
+
+                else if (e.Command.Name == "변환")
+                    await help.ConvertHelp(e.Context);
+
+                else
+                {
+                    await e.Context.Channel.SendMessageAsync(e.Exception.Message);
+                    discord.DebugLogger.LogMessage(LogLevel.Error, e.Command.Name, e.Exception.ToString(), DateTime.Now);
+                }
+            }
+            else if (e.Exception is EncryptionException)
+            {
+                dmb.AddField(e.Exception.InnerException.ToString(), "암호화 옵션을 확인해 주세요!");
             }
             else
             {
-                DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
-                {
-                    Title = "ERROR!",
-                    Color = DiscordColor.Red,
-                    Timestamp = DateTime.Now,
-                    Footer = GetFooter(e.Context),
-                    Description = $"요청하신 명령어 `{e.Context.Message.Content}`(을)를 찾을수 없습니다!"
-                };
+                dmb.Description = $"요청하신 명령어 `{e.Context.Message.Content}`(을)를 찾을수 없습니다!";
 
                 dmb.AddField("Error with CommandNotFoundException", "[라히야 추가 (기능과 설명)]으로 추가요청할 수 있습니다!");
                 await e.Context.RespondAsync(embed: dmb.Build());

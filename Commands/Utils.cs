@@ -1,26 +1,30 @@
-﻿using DiscordBot.Attributes;
+﻿using ColorHexConverter;
+using DecimalConverter;
+using DiscordBot.Attributes;
+using DiscordBot.Exceptions;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Net.Abstractions;
+using ImageProcessor;
 using MoreExtension;
 using Newtonsoft.Json;
+using QRCoder;
 using System;
 using System.Data;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using QRCoder;
 using static DiscordBot.Account;
+using static DiscordBot.Config;
 using static DiscordBot.Index;
 using static DiscordBot.Variable;
-using static DiscordBot.Config;
 using static DSharpPlus.Entities.DiscordEmbedBuilder;
-using System.Drawing;
-using System.Windows.Markup;
+using static Encryption.Encryption;
 
 namespace DiscordBot
 {
@@ -159,16 +163,12 @@ namespace DiscordBot
 
 
         [Command("랜덤")]
-        public async Task Random(CommandContext ctx)
+        public async Task Random(CommandContext ctx, int min, int max, int option = 10)
         {
-            string[] message = ctx.Message.Content.Split(' ');
+            if (min > int.MaxValue || min < int.MinValue || max > int.MaxValue || max < int.MinValue)
+                throw new ArgumentException($"최소값은 {int.MinValue}, 최대값은 {int.MaxValue}를 초과 할수 없어요!");
 
-            if (message.Length < 3)
-                await ctx.RespondAsync($"랜덤 함수 사용법 : 라히야 랜덤 [최소] [최대]\n최대, 최소의 값은 ±{int.MaxValue}를 넘을수 없어요!");
-            else if (!int.TryParse(message[2], out _) || !int.TryParse(message[3], out int _))
-                await ctx.RespondAsync($"최소값은 {int.MinValue}, 최대값은 {int.MaxValue}를 초과 할수 없어요!");
-            else
-                await ctx.RespondAsync(rnd.Next(int.Parse(message[2]), int.Parse(message[3])).ToString());
+            await ctx.RespondAsync(Convert.ToString(rnd.Next(min, max), option));
         }
 
         [Command("투표")]
@@ -525,6 +525,203 @@ namespace DiscordBot
                 if (e.Message.Contains("400"))
                     await ctx.RespondAsync("알수 없는 언어입니다!\n```사용 가능한 언어 : ko, en, fr, zh-CN, vi 등등```");
             }
+        }
+
+        [Group("암호")]
+        class Security
+        {
+            [Command("암호화")]
+            public async Task Encryption
+                (CommandContext ctx, string BaseOption, string EncodingOption, params string[] content)
+            {
+                WithBase32 base32 = new WithBase32();
+                WithBase64 base64 = new WithBase64();
+
+                DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
+                {
+                    Title = "암호화",
+                    Description = $"Encryption : {BaseOption.ToLower()}\n" +
+                                  $"EncodingOption : {EncodingOption.ToLower()}\n",
+                    Color = DiscordColor.SpringGreen,
+                    Timestamp = DateTime.Now,
+                    Footer = GetFooter(ctx)
+                };
+
+                string input = string.Join(" ", content);
+                string output;
+                Encoding encoding;
+
+                try { encoding = GetEncoding(EncodingOption.ToLower()); }
+                catch (Exception) { throw new EncryptionArgumentException("Encoding"); }
+
+                if (BaseOption.ToLower() == "base32")
+                    try { output = base32.Encrypt(encoding, input); }
+                    catch (Exception) { throw new EncryptionException(); }
+                else if (BaseOption.ToLower() == "base64")
+                    try { output = base64.Encrypt(encoding, input); }
+                    catch (Exception) { throw new EncryptionException(); }
+                else
+                {
+                    throw new EncryptionArgumentException("Encryption");
+                }
+
+                dmb.AddField(":inbox_tray:", $"```{input}```");
+                dmb.AddField(":outbox_tray:", $"```{output}```");
+
+                await ctx.RespondAsync(embed: dmb.Build());
+            }
+
+            [Command("해독")]
+            public async Task Decryption
+                (CommandContext ctx, string BaseOption, string EncodingOption, params string[] content)
+            {
+                WithBase32 base32 = new WithBase32();
+                WithBase64 base64 = new WithBase64();
+
+                DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
+                {
+                    Title = "해독",
+                    Description = $"Encryption : {BaseOption.ToLower()}\n" +
+                                  $"EncodingOption : {EncodingOption.ToLower()}\n",
+                    Color = DiscordColor.SpringGreen,
+                    Timestamp = DateTime.Now,
+                    Footer = GetFooter(ctx)
+                };
+
+                string input = string.Join(" ", content);
+                string output;
+                Encoding encoding;
+
+                try { encoding = GetEncoding(EncodingOption.ToLower()); }
+                catch (Exception) { throw new EncryptionArgumentException("Encoding"); }
+
+                if (BaseOption.ToLower() == "base32")
+                    try { output = base32.Decrypt(encoding, input); }
+                    catch (Exception) { throw new EncryptionException(); }
+                else if (BaseOption.ToLower() == "base64")
+                    try { output = base64.Decrypt(encoding, input); }
+                    catch (Exception) { throw new EncryptionException(); }
+                else
+                {
+                    throw new EncryptionArgumentException("Encryption");
+                }
+
+                dmb.AddField(":inbox_tray:", $"```{input}```");
+                dmb.AddField(":outbox_tray:", $"```{output}```");
+
+                await ctx.RespondAsync(embed: dmb.Build());
+            }
+        }
+
+        [Group("색깔")]
+        class ConvertColor
+        {
+            [Command("Web")]
+            public async Task GetWebColor(CommandContext ctx, int r, int g, int b)
+            {
+                DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
+                {
+                    Title = "Web Color",
+                    Description = "Converter RGB to WebColor",
+                    Color = DiscordColor.White,
+                    Timestamp = DateTime.Now,
+                    Footer = GetFooter(ctx)
+                };
+
+                dmb.AddField($"Input - R:{r}, G:{g}, B:{b}", $"```{ColorHexConverter.Converter.GetHexString(r, g, b)}```");
+
+                await ctx.RespondAsync(embed: dmb.Build());
+            }
+
+            [Command("RGB")]
+            public async Task Runrgb(CommandContext ctx, string HexCode) { await ctx.CommandsNext.SudoAsync(ctx.User, ctx.Channel, $"라히야 색깔 rgb {HexCode}"); }
+
+            [Command("rgb")]
+            public async Task GetRGB(CommandContext ctx, string HexCode)
+            {
+
+                string Hex;
+                if (HexCode.Length != 6 && HexCode.Length != 7)
+                    throw new ArgumentException("16진수 색코드가 아닙니다!");
+
+                if (HexCode.StartsWith("#"))
+                    Hex = HexCode.Remove(0, 1);
+                else
+                    Hex = HexCode;
+                char[] hexchar = Hex.ToCharArray();
+
+                int[] rgb = new int[3];
+
+                try
+                {
+                    rgb[0] = Convert.ToInt32(new string(hexchar, 0, 2), 16);
+                    rgb[1] = Convert.ToInt32(new string(hexchar, 2, 2), 16);
+                    rgb[2] = Convert.ToInt32(new string(hexchar, 4, 2), 16);
+                }
+                catch (Exception)
+                {
+                    throw new ArgumentException("16진수 색코드가 아닙니다!");
+                }
+
+                for (int i = 0; i < 3; i++)
+                    if (rgb[i] < 0 || rgb[i] > 255)
+                        throw new ArgumentException("허용 범위를 벗어났습니다");
+
+                DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
+                {
+                    Title = "Web Color",
+                    Description = "Converter RGB to WebColor",
+                    Color = DiscordColor.White,
+                    Timestamp = DateTime.Now,
+                    Footer = GetFooter(ctx)
+                };
+
+                dmb.AddField($"Input : #{Hex}", $"```R:{rgb[0]}, G:{rgb[1]}, B:{rgb[2]}```");
+
+                await ctx.RespondAsync(embed: dmb.Build());
+            }
+
+            [Group("이미지"), DoNotUse]
+            class GetColorImage
+            {
+                [Command("Web")]
+                public async Task Color_Image_Web(CommandContext ctx, string HexCode)
+                {
+                    string Hex;
+                    if (HexCode.StartsWith("#"))
+                        Hex = HexCode.Remove(0, 1);
+                    else
+                        Hex = HexCode;
+                    ImageFactory image = new ImageFactory();
+                    image.Load("White.png");
+                    image.BackgroundColor(GetColor.GetColorFromHex($"#{Hex}")).Save("White.png");
+                    await ctx.RespondWithFileAsync(file_path:"Color.png");
+                }
+
+                [Command("RGB")]
+                public async Task Image_RGB(CommandContext ctx, int r, int g, int b)
+                {
+                    ctx.CommandsNext.SudoAsync(ctx.User, ctx.Channel, $"라히야 색깔 이미지 rgb {r} {g} {b}");
+                }
+
+                [Command("rgb")]
+                public async Task Image_rgb(CommandContext ctx, int r, int g, int b)
+                {
+                    ImageFactory image = new ImageFactory();
+                    image.Load("White.png");
+                    image.BackgroundColor(GetColor.GetColorFromArgb(255, r, g, b)).Save("White.png");
+                    await ctx.RespondWithFileAsync(file_path:"Color.png");
+                }
+            }
+        }
+
+        [Command("변환")]
+        public async Task DecimalConvert(CommandContext ctx, string s, int FromBase, int ToBase)
+        {
+            if (FromBase == 10)
+                await ctx.RespondAsync(int.Parse(s).Convert(ToBase));
+            else
+                await ctx.RespondAsync(s.Convert(FromBase, ToBase).ToString());
         }
     }
 }

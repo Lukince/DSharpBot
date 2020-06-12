@@ -577,7 +577,13 @@ namespace DiscordBot
         [Command("Sudo")]
         public async Task Sudo(CommandContext ctx, params string[] content)
         {
-            await ctx.Client.GetCommandsNext().SudoAsync(ctx.User, ctx.Channel, string.Join(" ", content));
+            await ctx.CommandsNext.SudoAsync(ctx.User, ctx.Channel, string.Join(" ", content));
+        }
+
+        [Command("BotSudo"), DoNotUse]
+        public async Task BotSudo(CommandContext ctx, params string[] content)
+        {
+            await ctx.CommandsNext.SudoAsync(ctx.Client.CurrentUser, ctx.Channel, string.Join(" ", content));
         }
 
         [Command("py"), DoNotUse]
@@ -623,8 +629,12 @@ namespace DiscordBot
                     }
                     else
                     {
+                        if (!Directory.Exists("D:/Backup/DSharpBot/" + p[5]))
+                            Directory.CreateDirectory("D:/Backup/DSharpBot/" + p[5]);
+
                         location = p[5] + "/" + Path.GetFileName(path);
                     }
+
                     File.Copy(path, "D:/Backup/DSharpBot/" + location, true);
                 }
 
@@ -644,7 +654,7 @@ namespace DiscordBot
                 }
                 catch (Exception e)
                 {
-                    ctx.RespondAsync(e.Message);
+                    await ctx.RespondAsync(e.Message);
                     return;
                 }
 
