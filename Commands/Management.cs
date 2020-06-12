@@ -764,5 +764,12 @@ namespace DiscordBot
                 }
             }
         }
+
+        [Command("Shutdown")]
+        public async Task Reboot(CommandContext ctx)
+        {
+            ctx.RespondAsync("Shutdown Program");
+            Environment.Exit(0);
+        }
     }
 }
