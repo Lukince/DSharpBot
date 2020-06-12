@@ -337,17 +337,6 @@ namespace DiscordBot
             }
         }
 
-        [Command("Restart"), DoNotUse]
-        public async Task Restart(CommandContext ctx)
-        {
-            var msg = await ctx.RespondAsync("Restarting...");
-
-            await ctx.Client.DisconnectAsync();
-            await Task.Delay(2000);
-            await ctx.Client.ReconnectAsync();
-            await msg.ModifyAsync("Finish!");
-        }
-
         [Command("Files")]
         public async Task GetFiles(CommandContext ctx)
         {
@@ -766,9 +755,17 @@ namespace DiscordBot
         }
 
         [Command("Shutdown")]
-        public async Task Reboot(CommandContext ctx)
+        public async Task Shutdown(CommandContext ctx)
         {
             ctx.RespondAsync("Shutdown Program");
+            Environment.Exit(0);
+        }
+
+        [Command("Restart")]
+        public async Task Reboot(CommandContext ctx)
+        {
+            ctx.RespondAsync("Rebooting");
+            Process.Start("DiscordBot.exe");
             Environment.Exit(0);
         }
     }
