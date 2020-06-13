@@ -17,6 +17,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
 using static DiscordBot.Account;
@@ -203,7 +204,7 @@ namespace DiscordBot
                     DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
                     {
                         Title = "번역 결과",
-                        Color = RandomColor[rnd.Next(0, RandomColor.Length - 1)]
+                        Color = RandomColor[rnd.Next(0, RandomColor.Length - 1)]  
                     };
 
                     dmb.AddField(":inbox_tray: Input", string.Join(" ", content));
@@ -238,7 +239,7 @@ namespace DiscordBot
         }
 
         [Command("깃문자열")]
-        public async Task EmbedBuild(CommandContext ctx, string url)
+        public async Task EmbedBuild(CommandContext ctx, string url, string option = null)
         {
             WebClient wc = new WebClient()
             {
@@ -249,7 +250,18 @@ namespace DiscordBot
             try
             {
                 string s = wc.DownloadString(url);
-                await ctx.RespondAsync(s);
+
+                if (option == "--length")
+                    s = s.Length.ToString();
+                else if (option == "--lines")
+                    s = $"{s.Split('\n').Length}, Without null : {s.Split('\n').Where(l => l != string.Empty).ToArray().Length  }";
+
+                if (s.Length > 2000)
+                {
+                    File.WriteAllText("GOutput.txt", s);
+                    await ctx.RespondWithFileAsync("GOutput.txt", content: "요청 내용:");
+                }
+                else await ctx.RespondAsync($"```{s}```");
             }
             catch (Exception e)
             {
@@ -513,7 +525,8 @@ namespace DiscordBot
                     Title = "Papago 번역기",
                     Color = DiscordColor.Green,
                     Timestamp = DateTime.Now,
-                    Footer = GetFooter(ctx)
+                    Footer = GetFooter(ctx),
+                    ThumbnailUrl = Urls.Papago
                 };
 
                 dmb.AddField(":inbox_tray: 번역 전", $"```{s}```");

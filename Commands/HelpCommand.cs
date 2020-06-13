@@ -80,7 +80,13 @@ namespace DiscordBot.Commands
 
     class HelpCommand
     {
-        [Command("도움")]
+        [Command("?"), Hidden]
+        public async Task Help3(CommandContext ctx)
+        {
+            await ctx.CommandsNext.SudoAsync(ctx.User, ctx.Channel, "라히야 도움말");
+        }
+
+        [Command("도움"), Hidden]
         public async Task Help2(CommandContext ctx)
         {
             await ctx.CommandsNext.SudoAsync(ctx.User, ctx.Channel, "라히야 도움말");

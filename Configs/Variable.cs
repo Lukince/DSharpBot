@@ -7,11 +7,21 @@ using static DiscordBot.Index;
 using static DSharpPlus.Entities.DiscordEmbedBuilder;
 using System;
 using System.Threading.Tasks;
+using System.Collections;
+using IronPython.Runtime;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace DiscordBot
 {
     class Variable
     {
+        public static class Urls
+        {
+            public static string Papago { get; } = "http://blogfiles.naver.net/MjAxNzAxMjVfMjY0/MDAxNDg1MzU1NTY1NTA0.LUHh0-RMYj4x21WjrObA2Ga_WXxQhyYmKZc73qP4rrcg.TfNQRp2SY_dAWQehsRc_i18-zPyGoMnDluGxll4fJCIg.PNG.thankhawaii/%BD%BA%C5%A9%B8%B0%BC%A6_2017-01-25_%BF%C0%C0%FC_9.16.58.png";
+        }
+
         public static DiscordColor[] RandomColor =
         {
             DiscordColor.Aquamarine,
@@ -97,10 +107,17 @@ namespace DiscordBot
 
         public const int MaxPage = 4;
 
-        public static ulong[] AdminIdList =
+        public static ulong[] GetAdminIds()
         {
-            378535260754935819
-        };
+            List<ulong> list = new List<ulong>();
+
+            foreach (string s in File.ReadLines("Data/AdminId.txt"))
+            {
+                list.Add(Convert.ToUInt64(s));
+            }
+
+            return list.ToArray();
+        }
 
         public static EmbedFooter GetFooter(CommandContext ctx)
         {

@@ -24,6 +24,9 @@ using System.Runtime.InteropServices.ComTypes;
 using DSharpPlus.Interactivity;
 using System.Linq.Expressions;
 using System.Text;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using QRCoder;
 
 namespace DiscordBot
 {
@@ -502,9 +505,12 @@ namespace DiscordBot
         }
 
         [Command("Commands")]
-        public async Task GetCommand(CommandContext ctx)
+        public async Task GetCommand(CommandContext ctx, params string[] option)
         {
+            CheckBaseAttribute checkadmin = new CheckAdminAttribute();
+            CheckBaseAttribute checkdonotuse = new DoNotUseAttribute();
             var command = ctx.Client.GetCommandsNext().RegisteredCommands;
+            int commandcount = 0;
 
             DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
             {
@@ -512,28 +518,81 @@ namespace DiscordBot
                 Color = RandomColor[rnd.Next(0, RandomColor.Length - 1)],
                 Timestamp = DateTime.Now,
                 Footer = GetFooter(ctx),
-                Description = $"Command Count : {command.Count}"
+                Description = $"Command Count : "
             };
 
             string commandlist = string.Empty;
 
             foreach (Command c in command.Values.ToArray()
-                .Where(l => !l.IsHidden))
+                .Where(l => {
+                    if (l.IsHidden)
+                        return false;
+                    else if (l.ExecutionChecks.Contains(checkadmin))
+                        return false;
+                    else if (l.ExecutionChecks.Contains(checkdonotuse))
+                        return false;
+                    else
+                        return true;
+                }))
             {
                 commandlist += $"`{c.Name}` ";
+                commandcount++;
             }
 
             dmb.AddField("Command List", commandlist);
 
-            commandlist = string.Empty;
-            foreach (Command c in command.Values.ToArray()
-                .Where(l => l.IsHidden))
+            foreach (string o in option.Where(l => l.StartsWith("--")))
             {
-                commandlist += $"`{c.Name} `";
+                string op = o.ToLower();
+                if (op == "--hidden")
+                {
+                    commandlist = string.Empty;
+                    foreach (Command c in command.Values.ToArray()
+                        .Where(l => l.IsHidden))
+                    {
+                        commandlist += $"`{c.Name}` ";
+                        commandcount++;
+                    }
+
+                    dmb.AddField("Hidden Commands", commandlist);
+                }
+                else if (op == "--admin")
+                {
+                    commandlist = string.Empty;
+                    foreach (Command c in command.Values.ToArray()
+                        .Where(l => l.ExecutionChecks.Contains(checkadmin)))
+                    {
+                        commandlist += $"`{c.Name}` ";
+                        commandcount++;
+                    }
+
+                    dmb.AddField("Admin Commands", commandlist);
+                }
+                else if (op == "--notuse")
+                {
+                    commandlist = string.Empty;
+                    foreach (Command c in command.Values.ToArray()
+                        .Where(l => l.ExecutionChecks.Contains(checkdonotuse)))
+                    {
+                        commandlist += $"`{c.Name}` ";
+                        commandcount++;
+                    }
+
+                    dmb.AddField("NotUse Commands", commandlist);
+                }
+                else if (op == "--help")
+                {
+                    await ctx.RespondAsync("Options : Admin, NotUse, Hidden");
+                    return;
+                }
+                else if (op == "--all")
+                {
+                    await Sudo(ctx, "라히야 Commands --admin --hidden --notuse");
+                    return;
+                }
             }
 
-            dmb.AddField("Hidden Commands", commandlist);
-
+            dmb.Description += $"{commandcount}";
             await ctx.RespondAsync(embed: dmb.Build());
         }
 
@@ -729,6 +788,7 @@ namespace DiscordBot
                         {
                             File.WriteAllText("Output.txt", Output);
                             await ctx.RespondWithFileAsync(content: "Output File:", file_path: "Output.txt");
+                            File.Delete("Output.txt");
                         }
                     }
                 }
@@ -767,6 +827,56 @@ namespace DiscordBot
             ctx.RespondAsync("Rebooting");
             Process.Start("DiscordBot.exe");
             Environment.Exit(0);
+        }
+
+        [Group("Admin"), CheckAdmin]
+        class Admin
+        {
+            private string AdminId = "Data/AdminId.txt";
+
+            [Command("Add")]
+            public async Task AddAdmin(CommandContext ctx, ulong id)
+            {
+                if (File.ReadAllLines(AdminId).Contains(id.ToString()))
+                {
+                    await ctx.RespondAsync("Already id exist");
+                    return;
+                }
+
+                File.AppendAllText(AdminId, $"{id}\n");
+                await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
+            }
+
+            [Command("Remove")]
+            public async Task RemoveAdmin(CommandContext ctx, ulong id)
+            {
+                if (!File.ReadAllLines(AdminId).Contains(id.ToString()))
+                {
+                    await ctx.RespondAsync($"There's no id : {id}");
+                    return;
+                }
+
+                string[] content = File.ReadAllLines(AdminId).Where(l => Convert.ToUInt64(l) == id).ToArray();
+                File.WriteAllLines(AdminId, content);
+                await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
+            }
+        }
+
+        [Flags]
+        public enum Attributes
+        {
+            None = 0,
+            CheckAdminAttribute = 1,
+            DoNotUseAttribute = 2,
+            AccountAgreeAttribute = 4,
+            AccountCheckAttribute = 8,
+            BlackListAttribute = 16
+        }
+
+        [Command("GetFlags")]
+        public async Task GetFlags(CommandContext ctx, int flag)
+        {
+            await ctx.RespondAsync($"{(Attributes)flag}");
         }
     }
 }

@@ -416,7 +416,7 @@ namespace DiscordBot
             }
         }
 
-        [Command("틱택토")] //데이터 저장 방식 : 틱택토진행코드(9자리, 빌경우 0으로 표기):승패 결정(지면 0, 이기면 1):선공(유저가 선공이면 0, 봇이 선공이면 1)
+        [Command("틱택토"), DoNotUse] //데이터 저장 방식 : 틱택토진행코드(9자리, 빌경우 0으로 표기):승패 결정(지면 0, 이기면 1):선공(유저가 선공이면 0, 봇이 선공이면 1)
         public async Task TickTackTo(CommandContext ctx)
         {
             if (ctx.User.Id != 378535260754935819)

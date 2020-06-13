@@ -161,6 +161,9 @@ namespace DiscordBot
                 else if (e.Command.Name == "변환")
                     await help.ConvertHelp(e.Context);
 
+                else if (e.Exception is ChecksFailedException)
+                    return;
+
                 else
                 {
                     await e.Context.Channel.SendMessageAsync(e.Exception.Message);
