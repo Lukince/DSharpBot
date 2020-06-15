@@ -33,8 +33,8 @@ namespace DiscordBot
     [BlackList]
     class Utils
     {
-        public static HelpCommand HelpCommand { get; }
-        public static CommandHelp CommandHelp { get; }
+        public static HelpCommand HelpCommand = new HelpCommand();
+        public static CommandHelp CommandHelp = new CommandHelp();
         public static Random rnd = new Random();
 
         [Command("주사위")]
@@ -629,111 +629,111 @@ namespace DiscordBot
             }
         }
 
-        [Group("색깔")]
-        class ConvertColor
+        [Group("변환")]
+        class Converts
         {
-            [Command("Web")]
-            public async Task GetWebColor(CommandContext ctx, int r, int g, int b)
-            {
-                DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
-                {
-                    Title = "Web Color",
-                    Description = "Converter RGB to WebColor",
-                    Color = DiscordColor.White,
-                    Timestamp = DateTime.Now,
-                    Footer = GetFooter(ctx)
-                };
-
-                dmb.AddField($"Input - R:{r}, G:{g}, B:{b}", $"```{ColorHexConverter.Converter.GetHexString(r, g, b)}```");
-
-                await ctx.RespondAsync(embed: dmb.Build());
-            }
-
-            [Command("RGB")]
-            public async Task Runrgb(CommandContext ctx, string HexCode) { await ctx.CommandsNext.SudoAsync(ctx.User, ctx.Channel, $"라히야 색깔 rgb {HexCode}"); }
-
-            [Command("rgb")]
-            public async Task GetRGB(CommandContext ctx, string HexCode)
-            {
-
-                string Hex;
-                if (HexCode.Length != 6 && HexCode.Length != 7)
-                    throw new ArgumentException("16진수 색코드가 아닙니다!");
-
-                if (HexCode.StartsWith("#"))
-                    Hex = HexCode.Remove(0, 1);
-                else
-                    Hex = HexCode;
-                char[] hexchar = Hex.ToCharArray();
-
-                int[] rgb = new int[3];
-
-                try
-                {
-                    rgb[0] = Convert.ToInt32(new string(hexchar, 0, 2), 16);
-                    rgb[1] = Convert.ToInt32(new string(hexchar, 2, 2), 16);
-                    rgb[2] = Convert.ToInt32(new string(hexchar, 4, 2), 16);
-                }
-                catch (Exception)
-                {
-                    throw new ArgumentException("16진수 색코드가 아닙니다!");
-                }
-
-                for (int i = 0; i < 3; i++)
-                    if (rgb[i] < 0 || rgb[i] > 255)
-                        throw new ArgumentException("허용 범위를 벗어났습니다");
-
-                DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
-                {
-                    Title = "Web Color",
-                    Description = "Converter RGB to WebColor",
-                    Color = DiscordColor.White,
-                    Timestamp = DateTime.Now,
-                    Footer = GetFooter(ctx)
-                };
-
-                dmb.AddField($"Input : #{Hex}", $"```R:{rgb[0]}, G:{rgb[1]}, B:{rgb[2]}```");
-
-                await ctx.RespondAsync(embed: dmb.Build());
-            }
-
-            [Group("이미지"), DoNotUse]
-            class GetColorImage
+            [Group("색깔")]
+            class ConvertColor
             {
                 [Command("Web")]
-                public async Task Color_Image_Web(CommandContext ctx, string HexCode)
+                public async Task GetWebColor(CommandContext ctx, int r, int g, int b)
                 {
+                    DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
+                    {
+                        Title = "Web Color",
+                        Description = "Converter RGB to WebColor",
+                        Color = DiscordColor.White,
+                        Timestamp = DateTime.Now,
+                        Footer = GetFooter(ctx)
+                    };
+
+                    dmb.AddField($"Input - R:{r}, G:{g}, B:{b}", $"```{ColorHexConverter.Converter.GetHexString(r, g, b)}```");
+
+                    await ctx.RespondAsync(embed: dmb.Build());
+                }
+
+                [Command("RGB")]
+                public async Task Runrgb(CommandContext ctx, string HexCode) { await ctx.CommandsNext.SudoAsync(ctx.User, ctx.Channel, $"라히야 색깔 rgb {HexCode}"); }
+
+                [Command("rgb")]
+                public async Task GetRGB(CommandContext ctx, string HexCode)
+                {
+
                     string Hex;
+                    if (HexCode.Length != 6 && HexCode.Length != 7)
+                        throw new ArgumentException("16진수 색코드가 아닙니다!");
+
                     if (HexCode.StartsWith("#"))
                         Hex = HexCode.Remove(0, 1);
                     else
                         Hex = HexCode;
-                    ImageFactory image = new ImageFactory();
-                    image.Load("White.png");
-                    image.BackgroundColor(GetColor.GetColorFromHex($"#{Hex}")).Save("White.png");
-                    await ctx.RespondWithFileAsync(file_path: "Color.png");
+                    char[] hexchar = Hex.ToCharArray();
+
+                    int[] rgb = new int[3];
+
+                    try
+                    {
+                        rgb[0] = Convert.ToInt32(new string(hexchar, 0, 2), 16);
+                        rgb[1] = Convert.ToInt32(new string(hexchar, 2, 2), 16);
+                        rgb[2] = Convert.ToInt32(new string(hexchar, 4, 2), 16);
+                    }
+                    catch (Exception)
+                    {
+                        throw new ArgumentException("16진수 색코드가 아닙니다!");
+                    }
+
+                    for (int i = 0; i < 3; i++)
+                        if (rgb[i] < 0 || rgb[i] > 255)
+                            throw new ArgumentException("허용 범위를 벗어났습니다");
+
+                    DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
+                    {
+                        Title = "Web Color",
+                        Description = "Converter RGB to WebColor",
+                        Color = DiscordColor.White,
+                        Timestamp = DateTime.Now,
+                        Footer = GetFooter(ctx)
+                    };
+
+                    dmb.AddField($"Input : #{Hex}", $"```R:{rgb[0]}, G:{rgb[1]}, B:{rgb[2]}```");
+
+                    await ctx.RespondAsync(embed: dmb.Build());
                 }
 
-                [Command("RGB")]
-                public async Task Image_RGB(CommandContext ctx, int r, int g, int b)
+                [Group("이미지"), DoNotUse]
+                class GetColorImage
                 {
-                    ctx.CommandsNext.SudoAsync(ctx.User, ctx.Channel, $"라히야 색깔 이미지 rgb {r} {g} {b}");
-                }
+                    [Command("Web")]
+                    public async Task Color_Image_Web(CommandContext ctx, string HexCode)
+                    {
+                        string Hex;
+                        if (HexCode.StartsWith("#"))
+                            Hex = HexCode.Remove(0, 1);
+                        else
+                            Hex = HexCode;
+                        ImageFactory image = new ImageFactory();
+                        image.Load("White.png");
+                        image.BackgroundColor(GetColor.GetColorFromHex($"#{Hex}")).Save("White.png");
+                        await ctx.RespondWithFileAsync(file_path: "Color.png");
+                    }
 
-                [Command("rgb")]
-                public async Task Image_rgb(CommandContext ctx, int r, int g, int b)
-                {
-                    ImageFactory image = new ImageFactory();
-                    image.Load("White.png");
-                    image.BackgroundColor(GetColor.GetColorFromArgb(255, r, g, b)).Save("White.png");
-                    await ctx.RespondWithFileAsync(file_path: "Color.png");
+                    [Command("RGB")]
+                    public async Task Image_RGB(CommandContext ctx, int r, int g, int b)
+                    {
+                        ctx.CommandsNext.SudoAsync(ctx.User, ctx.Channel, $"라히야 색깔 이미지 rgb {r} {g} {b}");
+                    }
+
+                    [Command("rgb")]
+                    public async Task Image_rgb(CommandContext ctx, int r, int g, int b)
+                    {
+                        ImageFactory image = new ImageFactory();
+                        image.Load("White.png");
+                        image.BackgroundColor(GetColor.GetColorFromArgb(255, r, g, b)).Save("White.png");
+                        await ctx.RespondWithFileAsync(file_path: "Color.png");
+                    }
                 }
             }
-        }
 
-        [Group("변환")]
-        class Converts
-        {
             [Command("도움말")]
             public async Task ConvertHelp(CommandContext ctx)
             {

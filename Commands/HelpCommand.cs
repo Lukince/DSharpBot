@@ -34,44 +34,56 @@ namespace DiscordBot.Commands
                 dmb.Footer = GetFooter(ctx);
             }
 
-            if (page == 1)
+            switch (page)
             {
-                dmb.Title = $"도움말 1/{MaxPage}";
-                dmb.Description = "계정";
-                dmb.AddField("라히야 가입", "라히와 함께 할수 있어요! 여러가지 게임도 하고.. 정말 좋겠죠?");
-                dmb.AddField("라히야 탈퇴", "헤어지는 시간은 늘 있는법이죠... 아픈 경험을 할것만 같은 명령어예요.");
-            }
-            else if (page == 2)
-            {
-                dmb.Title = $"도움말 2/{MaxPage}";
-                dmb.Description = "게임";
-                dmb.AddField("라히야 큐브", "라히는 큐브 시스템을 운영하고 있어요! 자세한건 `라히야 큐브`를 직접 입력해 보아요!");
-                dmb.AddField("라히야 리워드", "매일 한번씩 큐브를 받을 수 있어요! 운만 좋다면 돈도 받을수 있고요!");
-                dmb.AddField("라히야 주사위", "랜덤으로 주사위를 굴려드릴께요!");
-            }
-            else if (page == 3)
-            {
-                dmb.Title = $"도움말 3/{MaxPage}";
-                dmb.Description = "기능 ( 1 / 2 )";
-                dmb.AddField("라히야 안녕", "인사하시려고요? 여기서도 인사드릴게요! 반가워요! 라히예요!");
-                dmb.AddField("라히야 초대", "저를 초대해주세요! 라히의 성장에 동참할 수 있는 기회를 열어주는거예요!");
-                dmb.AddField("라히야 시간", "라히와 함께한 시간을 알수 있어요! 대신 먼저 가입을 해주세요!");
-                dmb.AddField("라히야 추가", "원하시는 기능이 있으시면 말씀해 주세요!");
-                dmb.AddField("라히야 핑", "라히의 핑을 알수 있어요. 190~240 사이라면 아주 잘 되고 있는거예요!");
-                dmb.AddField("라히야 말해", "제가 대신 말해드릴께요! 얼마든지 말씀하세요!");
-            }
-            else if (page == 4)
-            {
-                dmb.Title = $"도움말 4/{MaxPage}";
-                dmb.Description = "기능 ( 2 / 2 )";
-                dmb.AddField("라히야 계산", "똑똑한 라히가 계산 해줄께요!");
-                dmb.AddField("라히야 업타임", "제가 얼마나 온라인 상태였는지 알 수 있어요! 근데... 왜 궁금하세요?");
-                dmb.AddField("라히야 랜덤 [최소] [최대]", "랜덤은 언제나 필요한 것이예요! 랜덤한 숫자를 생성해드릴게요!");
-                dmb.AddField("라히야 숫자야구게임", "게임 한판 해보자고요! 룰을 모르면 [라히야 룰 숫자야구게임]을 이용해주세요!");
-            }
-            else
-            {
-                throw new ArgumentException("페이지가 맞지 않습니다.");
+                case 1:
+                    dmb.Title = $"도움말 1/{MaxPage}";
+                    dmb.Description = "계정";
+                    dmb.AddField("라히야 가입", "라히와 함께 할수 있어요! 여러가지 게임도 하고.. 정말 좋겠죠?");
+                    dmb.AddField("라히야 탈퇴", "헤어지는 시간은 늘 있는법이죠... 아픈 경험을 할것만 같은 명령어예요.");
+                    break;
+
+                case 2:
+                    dmb.Title = $"도움말 2/{MaxPage}";
+                    dmb.Description = "게임";
+                    dmb.AddField("라히야 큐브", "라히는 큐브 시스템을 운영하고 있어요! 자세한건 `라히야 큐브`를 직접 입력해 보아요!");
+                    dmb.AddField("라히야 리워드", "매일 한번씩 큐브를 받을 수 있어요! 운만 좋다면 돈도 받을수 있고요!");
+                    dmb.AddField("라히야 주사위", "랜덤으로 주사위를 굴려드릴께요!");
+                    dmb.AddField("라히야 숫자야구게임", "게임 한판 해보자고요! 룰을 모르면 [라히야 룰 숫자야구게임]을 이용해주세요!");
+                    break;
+
+                case 3:
+                    dmb.Title = $"도움말 3/{MaxPage}";
+                    dmb.Description = "기능 ( 1 / 3 )";
+                    dmb.AddField("라히야 안녕", "인사하시려고요? 여기서도 인사드릴게요! 반가워요! 라히예요!");
+                    dmb.AddField("라히야 초대", "저를 초대해주세요! 라히의 성장에 동참할 수 있는 기회를 열어주는거예요!");
+                    dmb.AddField("라히야 시간", "라히와 함께한 시간을 알수 있어요! 대신 먼저 가입을 해주세요!");
+                    dmb.AddField("라히야 추가 [추가하고 싶은 기능 등]", "원하시는 기능이 있으시면 말씀해 주세요!");
+                    dmb.AddField("라히야 핑", "라히의 핑을 알수 있어요. 190~240 사이라면 아주 잘 되고 있는거예요!");
+                    dmb.AddField("라히야 말해 [내용]", "제가 대신 말해드릴께요! 얼마든지 말씀하세요!");
+                    break;
+
+                case 4:
+                    dmb.Title = $"도움말 4/{MaxPage}";
+                    dmb.Description = "기능 ( 2 / 3 )";
+                    dmb.AddField("라히야 계산 [계산할 내용]", "똑똑한 라히가 계산 해줄께요!");
+                    dmb.AddField("라히야 업타임", "제가 얼마나 온라인 상태였는지 알 수 있어요! 근데... 왜 궁금하세요?");
+                    dmb.AddField("라히야 랜덤 [최소] [최대]", "랜덤은 언제나 필요한 것이예요! 랜덤한 숫자를 생성해드릴게요!");
+                    dmb.AddField("라히야 서버인원", "서버의 인원을 확인할 수 있어요! 아직 여러기능이 실험중이니 더욱 멋져질꺼예요!");
+                    dmb.AddField("라히야 qr코드 [내용]", "QR코드를 생성해드릴게요! 문자던 주소던 뭐든 가능해요!");
+                    dmb.AddField("라히야 히스토리", "변천사를 알수 있어요! 어느 명령어가 추가됬는지 까지요");
+                    break;
+
+                case 5:
+                    dmb.Title = $"도움말 5/{MaxPage}";
+                    dmb.Description = "기능 ( 3 / 3 )";
+                    dmb.AddField("라히야 암호화", "비밀로 할게 필요하세요? 제가 암호화 해드릴게요!");
+                    dmb.AddField("라히야 변환", "시간이라던지 온도같은 단위간의 변환을 할수 있어요! 자세한건 [라히야 변환 도움말]을 참고해봐요!");
+                    dmb.AddField("라히야 단축 [Url 주소]", "네이버 Api를 이용한 Url(주소) 단축 시스템이예요! 뭔소린지 모르겠다고요? 그냥 주소를 짧게 만들어줘요!");
+                    dmb.AddField("라히야 번역 [대상 언어] [바꿀 언어] [내용]", "파파고를 이용한 번역 시스템이예요! 너무 많이 쓰지는 마세요!");
+                    break;
+                default:
+                    throw new ArgumentException("페이지가 맞지 않습니다.");
             }
 
             return dmb;
@@ -240,7 +252,25 @@ namespace DiscordBot.Commands
 
         public async Task ConvertHelp(CommandContext ctx)
         {
+            DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
+            {
+                Title = "변환 도움말",
+                Description = "목록 : 진수, 바이너리, 온도 (추가 예정)",
+                Color = DiscordColor.Yellow,
+                Timestamp = DateTime.Now,
+                Footer = GetFooter(ctx)
+            };
 
+            dmb.AddField("라히야 변환 진수", "사용 : 라히야 변환 진수 [내용] [내용의 n진수] [변환할 n진수]\n" +
+                "숫자를 다른 진수로 변환해드립니다!\n" +
+                "Ex) 라히야 변환 진수 FF 16 10 => 255");
+            dmb.AddField("라히야 변환 바이너리", "사용 : 라히야 변환 바이너리 [바이트/문자] [바이트:2진수/문자:내용]\n" +
+                "바이트를 골랐다면 2진수를 입력하고, 문자를 골랐다면 이진수로 변환할 내용을 입력해주세요!\n" +
+                "*주의! 내용이 2000자가 넘어가게 되면 출력이 되지 않을수 있습니다!");
+            dmb.AddField("라히야 변환 온도", "사용 : 라히야 변환 온도 [온도] [온도 단위] [변환할 온도 단위]\n" +
+                "온도간의 변환을 해줘요! 단위는 ˚C(섭씨) ˚F(화씨) ˚K(절대온도) 가 있어요!");
+
+            await ctx.RespondAsync(embed: dmb.Build());
         }
     }
 

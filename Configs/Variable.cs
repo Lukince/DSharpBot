@@ -105,7 +105,7 @@ namespace DiscordBot
             ":nine:",
         };
 
-        public const int MaxPage = 4;
+        public const int MaxPage = 5;
 
         public static ulong[] GetAdminIds()
         {
