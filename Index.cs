@@ -60,7 +60,7 @@ namespace DiscordBot
                     if (e.Message.Content.StartsWith("라히야"))
                     {
                         string log = $"\n{DateTime.Now} : {e.Guild.Name}에서 {e.Channel.Name}에 {e.Author.Username}님이 {e.Message.Content}를 사용하였습니다.";
-                        discord.DebugLogger.LogMessage(LogLevel.Debug, e.Guild.Name, $"{e.Author.Username}#{e.Author.Discriminator} #{e.Channel.Name}:{e.Message.Content}", DateTime.Now);
+                        discord.DebugLogger.LogMessage(LogLevel.Debug, $"{e.Author.Username}#{e.Author.Discriminator}", $"{e.Guild.Name}#{e.Channel.Name}:{e.Message.Content}", DateTime.Now);
                         File.AppendAllText($"DebugLog/{StartDate}.txt", log);
 
                         if (e.Message.Content.Trim() == "라히야")
@@ -131,6 +131,7 @@ namespace DiscordBot
                 if (e.Command.Description == "NeedManageMessages" && e.Exception is ChecksFailedException)
                     await e.Context.RespondAsync("라히는 다음 권한이 필요해요!\n" +
                         "```메시지 관리권한```");
+
                 else if (e.Context.Message.Content.StartsWith("라히야 큐브"))
                     await help.CubeHelp(e.Context);
 
@@ -159,7 +160,7 @@ namespace DiscordBot
                     await help.RandomHelp(e.Context);
 
                 else if (e.Command.Name == "변환")
-                    await help.ConvertHelp(e.Context);
+                    await e.Context.RespondAsync("`라히야 변환 도움말` 을 참고해 주세요!");
 
                 else if (e.Exception is ChecksFailedException)
                     return;

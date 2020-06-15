@@ -187,24 +187,20 @@ namespace DiscordBot.Commands
 
         }
 
-        [Command("룰")]
-        public async Task Rules(CommandContext ctx, string option = null)
+        [Group("룰")]
+        class Rules
         {
-            switch (option)
+            [Command("숫자야구게임")]
+            public async Task NBGHelp(CommandContext ctx, string option = null)
             {
-                case "숫자야구게임":
-                    await ctx.RespondAsync("Help : 숫자야구게임\n" +
-                        "```숫자야구게임은 랜덤으로 정해지는 숫자를 맞추는 게임이예요!\n" +
-                        "먼저 3개의 숫자가 정해집니다. 예를들어 볼까요? 2 4 5 라고 정해졌다고 칩시다\n" +
-                        "이제 사용자가 입력을 해줍니다 방식은 [a b c] 형태로요\n" +
-                        "또다시 예를 들어볼까요? 사용자가 1 2 3 을 입력했어요!\n" +
-                        "이에 대해서 같은 자리에 있고 숫자가 같으면 1 Strike!\n" +
-                        "자리가 같지는 않지만 숫자가 같으면 1 Ball 이랍니다!\n" +
-                        "이 정보들을 바탕으로 랜덤한 숫자가 무엇인지 찾으면 되는거랍니다!```");
-                    return;
-                default:
-                    await ctx.RespondAsync("룰 목록 : `숫자야구게임`");
-                    return;
+                await ctx.RespondAsync("Help : 숫자야구게임\n" +
+                    "```숫자야구게임은 랜덤으로 정해지는 숫자를 맞추는 게임이예요!\n" +
+                    "먼저 3개의 숫자가 정해집니다. 예를들어 볼까요? 2 4 5 라고 정해졌다고 칩시다\n" +
+                    "이제 사용자가 입력을 해줍니다 방식은 [a b c] 형태로요\n" +
+                    "또다시 예를 들어볼까요? 사용자가 1 2 3 을 입력했어요!\n" +
+                    "이에 대해서 같은 자리에 있고 숫자가 같으면 1 Strike!\n" +
+                    "자리가 같지는 않지만 숫자가 같으면 1 Ball 이랍니다!\n" +
+                    "이 정보들을 바탕으로 랜덤한 숫자가 무엇인지 찾으면 되는거랍니다!```");
             }
         }
     }
@@ -244,8 +240,9 @@ namespace DiscordBot.Commands
 
         public async Task ConvertHelp(CommandContext ctx)
         {
-            await ctx.RespondAsync("사용법 : 라히야 변환 [변환할 내용] [내용의 진수] [변환할 진수]\n" +
-                "```ex) 라히야 변환 255 10 16 => ff를 반환```");
+
         }
     }
+
 }
+

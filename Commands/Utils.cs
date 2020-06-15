@@ -1,6 +1,7 @@
 ﻿using ColorHexConverter;
 using DecimalConverter;
 using DiscordBot.Attributes;
+using DiscordBot.Commands;
 using DiscordBot.Exceptions;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
@@ -17,7 +18,6 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
 using static DiscordBot.Account;
@@ -26,12 +26,15 @@ using static DiscordBot.Index;
 using static DiscordBot.Variable;
 using static DSharpPlus.Entities.DiscordEmbedBuilder;
 using static Encryption.Encryption;
+using static QNConverter.TemperatureConvert;
 
 namespace DiscordBot
 {
     [BlackList]
     class Utils
     {
+        public static HelpCommand HelpCommand { get; }
+        public static CommandHelp CommandHelp { get; }
         public static Random rnd = new Random();
 
         [Command("주사위")]
@@ -204,7 +207,7 @@ namespace DiscordBot
                     DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
                     {
                         Title = "번역 결과",
-                        Color = RandomColor[rnd.Next(0, RandomColor.Length - 1)]  
+                        Color = RandomColor[rnd.Next(0, RandomColor.Length - 1)]
                     };
 
                     dmb.AddField(":inbox_tray: Input", string.Join(" ", content));
@@ -254,7 +257,7 @@ namespace DiscordBot
                 if (option == "--length")
                     s = s.Length.ToString();
                 else if (option == "--lines")
-                    s = $"{s.Split('\n').Length}, Without null : {s.Split('\n').Where(l => l != string.Empty).ToArray().Length  }";
+                    s = $"{s.Split('\n').Length}, Without null : {s.Split('\n').Where(l => l != string.Empty).ToArray().Length}";
 
                 if (s.Length > 2000)
                 {
@@ -708,7 +711,7 @@ namespace DiscordBot
                     ImageFactory image = new ImageFactory();
                     image.Load("White.png");
                     image.BackgroundColor(GetColor.GetColorFromHex($"#{Hex}")).Save("White.png");
-                    await ctx.RespondWithFileAsync(file_path:"Color.png");
+                    await ctx.RespondWithFileAsync(file_path: "Color.png");
                 }
 
                 [Command("RGB")]
@@ -723,18 +726,189 @@ namespace DiscordBot
                     ImageFactory image = new ImageFactory();
                     image.Load("White.png");
                     image.BackgroundColor(GetColor.GetColorFromArgb(255, r, g, b)).Save("White.png");
-                    await ctx.RespondWithFileAsync(file_path:"Color.png");
+                    await ctx.RespondWithFileAsync(file_path: "Color.png");
                 }
             }
         }
 
-        [Command("변환")]
-        public async Task DecimalConvert(CommandContext ctx, string s, int FromBase, int ToBase)
+        [Group("변환")]
+        class Converts
         {
-            if (FromBase == 10)
-                await ctx.RespondAsync(int.Parse(s).Convert(ToBase));
-            else
-                await ctx.RespondAsync(s.Convert(FromBase, ToBase).ToString());
+            [Command("도움말")]
+            public async Task ConvertHelp(CommandContext ctx)
+            {
+                await CommandHelp.ConvertHelp(ctx);
+            }
+
+            [Command("진수")]
+            public async Task DecimalConvert(CommandContext ctx, string s, int FromBase, int ToBase)
+            {
+                if (FromBase == 10)
+                    await ctx.RespondAsync(int.Parse(s).Convert(ToBase));
+                else
+                    await ctx.RespondAsync(s.Convert(FromBase, ToBase).ToString());
+            }
+
+            [Group("바이너리")]
+            class Binary
+            {
+                [Command("바이트")]
+                public async Task BinaryToString(CommandContext ctx, params string[] paramsByte)
+                {
+                    string sb = string.Join("", paramsByte);
+
+                    foreach (char c in sb.ToCharArray())
+                    {
+                        if (int.TryParse(c.ToString(), out int result))
+                        {
+                            if (result != 0 && result != 1)
+                            {
+                                throw new ArgumentException("0과 1 만 허용되요! 즉 2진수여야 해요!");
+                            }
+                        }
+                        else
+                            throw new ArgumentException("0과 1 만 허용되요! 즉 2진수여야 해요!");
+                    }
+
+                    int nbyte = sb.Length / 8;
+                    byte[] outbytes = new byte[nbyte];
+
+                    for (int i = 0; i < nbyte; i++)
+                    {
+                        string s = sb.Substring(i * 8, 8);
+                        outbytes[i] = (byte)Convert.ToInt32(s, 2);
+                    }
+
+                    string outstr = Encoding.UTF8.GetString(outbytes);
+                    await ctx.RespondAsync(outstr);
+                }
+
+                [Command("문자")]
+                public async Task StringToBinary(CommandContext ctx, params string[] content)
+                {
+                    string s = string.Join(" ", content);
+                    byte[] bytes = Encoding.UTF8.GetBytes(s);
+
+                    string output = string.Empty;
+                    foreach (byte b in bytes)
+                        output += $"{Convert.ToString(b, 2).PadLeft(8, '0')} ";
+
+                    await ctx.RespondAsync(output);
+                }
+            }
+
+            [Command("온도")]
+            public async Task ConvertTemperature(CommandContext ctx, double temper, string FromTemper, string ToTemper)
+            {
+                if (double.IsNaN(temper) || double.IsInfinity(temper))
+                    throw new ArgumentException("온도는 NaN이거나 Infinity일수 없습니다!");
+
+                DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
+                {
+                    Title = "온도 변환기",
+                    Description = "섭씨 - 화씨 - 절대온도",
+                    Color = RandomColor[rnd.Next(0, RandomColor.Length - 1)],
+                    Timestamp = DateTime.Now,
+                    Footer = GetFooter(ctx)
+                };
+
+                switch (ToTemper.ToLower())
+                {
+                    case "c":
+                        switch (FromTemper.ToLower())
+                        {
+                            case "c":
+                                dmb.AddField($"˚{FromTemper.ToUpper()} -> ˚{ToTemper.ToUpper()}", $"{GetCelsius(temper, TemperatureKey.C)} ˚{ToTemper.ToUpper()}");
+                                break;
+                            case "f":
+                                dmb.AddField($"˚{FromTemper.ToUpper()} -> ˚{ToTemper.ToUpper()}", $"{GetCelsius(temper, TemperatureKey.F)} ˚{ToTemper.ToUpper()}");
+                                break;
+                            case "k":
+                                dmb.AddField($"˚{FromTemper.ToUpper()} -> ˚{ToTemper.ToUpper()}", $"{GetCelsius(temper, TemperatureKey.K)} ˚{ToTemper.ToUpper()}");
+                                break;
+                            default:
+                                throw new ArgumentException("온도의 단위는 `C, F, K`를 사용할수 있어요!");
+                        }
+                        break;
+
+                    case "f":
+                        switch (FromTemper.ToLower())
+                        {
+                            case "c":
+                                dmb.AddField($"˚{FromTemper.ToUpper()} -> ˚{ToTemper.ToUpper()}", $"{GetFahrenheit(temper, TemperatureKey.C)} ˚{ToTemper.ToUpper()}");
+                                break;
+                            case "f":
+                                dmb.AddField($"˚{FromTemper.ToUpper()} -> ˚{ToTemper.ToUpper()}", $"{GetFahrenheit(temper, TemperatureKey.F)} ˚{ToTemper.ToUpper()}");
+                                break;
+                            case "k":
+                                dmb.AddField($"˚{FromTemper.ToUpper()} -> ˚{ToTemper.ToUpper()}", $"{GetFahrenheit(temper, TemperatureKey.K)} ˚{ToTemper.ToUpper()}");
+                                break;
+                            default:
+                                throw new ArgumentException("온도의 단위는 `C, F, K`를 사용할수 있어요!");
+                        }
+                        break;
+
+                    case "k":
+                        switch (FromTemper.ToLower())
+                        {
+                            case "c":
+                                dmb.AddField($"˚{FromTemper.ToUpper()} -> ˚{ToTemper.ToUpper()}", $"{GetKelvin(temper, TemperatureKey.C)} ˚{ToTemper.ToUpper()}");
+                                break;
+                            case "f":
+                                dmb.AddField($"˚{FromTemper.ToUpper()} -> ˚{ToTemper.ToUpper()}", $"{GetKelvin(temper, TemperatureKey.F)} ˚{ToTemper.ToUpper()}");
+                                break;
+                            case "k":
+                                dmb.AddField($"˚{FromTemper.ToUpper()} -> ˚{ToTemper.ToUpper()}", $"{GetKelvin(temper, TemperatureKey.K)} ˚{ToTemper.ToUpper()}");
+                                break;
+                            default:
+                                throw new ArgumentException("온도의 단위는 `C, F, K`를 사용할수 있어요!");
+                        }
+                        break;
+
+                    default:
+                        throw new ArgumentException("온도의 단위는 `C, F, K`를 사용할수 있어요!");
+                }
+
+                await ctx.RespondAsync(embed: dmb.Build());
+            }
+        }
+
+        [Command("단축")]
+        public async Task ShortUrlNaver(CommandContext ctx, string intputurl)
+        {
+            string url = "https://openapi.naver.com/v1/util/shorturl";
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+            request.Headers.Add("X-Naver-Client-Id", PapagoId); // 개발자센터에서 발급받은 Client ID
+            request.Headers.Add("X-Naver-Client-Secret", PapagoSecret); // 개발자센터에서 발급받은 Client Secret
+            request.Method = "POST";
+            string query = intputurl; // 단축할 URL 대상
+            byte[] byteDataParams = Encoding.UTF8.GetBytes("url=" + query);
+            request.ContentType = "application/x-www-form-urlencoded";
+            request.ContentLength = byteDataParams.Length;
+            Stream st = request.GetRequestStream();
+            st.Write(byteDataParams, 0, byteDataParams.Length);
+            st.Close();
+            HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+            Stream stream = response.GetResponseStream();
+            StreamReader reader = new StreamReader(stream, Encoding.UTF8);
+            string text = reader.ReadToEnd();
+            stream.Close();
+            response.Close();
+            reader.Close();
+
+            DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
+            {
+                Title = "단축 Url",
+                Description = "네이버를 이용한 단축 Url",
+                Color = DiscordColor.SpringGreen,
+                Timestamp = DateTime.Now,
+                Footer = GetFooter(ctx)
+            };
+
+            string content = text.Substring(18, 22);
+            dmb.AddField("단축된 Url", content);
+
+            await ctx.RespondAsync(embed: dmb.Build());
         }
     }
 }

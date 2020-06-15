@@ -350,24 +350,23 @@ namespace DiscordBot
             };
 
             string Files = string.Empty;
+            foreach (string filepath in Directory.GetFiles("../../../", "*.*", SearchOption.TopDirectoryOnly))
+                Files += $"{DiscordEmoji.FromGuildEmote(ctx.Client, 715420547005284372)} {Path.GetFileName(filepath)}\n";
 
-            foreach (string path in Directory.GetDirectories("../../").Where(l => Path.GetDirectoryName(l) != "bin" || Path.GetDirectoryName(l) != "obj"))
+            dmb.AddField($"{DiscordEmoji.FromGuildEmote(ctx.Client, 715420547038838815)} FolderName : DiscordBot", Files);
+
+            foreach (string directorypath in Directory.GetDirectories("../../../"))
             {
-                Files += $"{DiscordEmoji.FromGuildEmote(ctx.Client, 715420547038838815)} {Path.GetFileName(path)}";
-                foreach (string file in Directory.GetFiles(path))
-                {
-                    Files += $"└ {DiscordEmoji.FromGuildEmote(ctx.Client, 715420547005284372)} {Path.GetFileName(file)}";
-                }
+                if (Path.GetFullPath(directorypath).Contains("bin") || Path.GetFullPath(directorypath).Contains("obj"))
+                    continue;
+
+                string s = string.Empty;
+
+                foreach (string filepath in Directory.GetFiles(directorypath))
+                    s += $"{DiscordEmoji.FromGuildEmote(ctx.Client, 715420547005284372)} {Path.GetFileName(filepath)}\n";
+
+                dmb.AddField($"{DiscordEmoji.FromGuildEmote(ctx.Client, 715420547038838815)} {Path.GetFullPath(directorypath).Split('\\')[5]}\n", s);
             }
-
-            foreach (string path in Directory.GetFiles("../../"))
-            {
-                Files += $"{DiscordEmoji.FromGuildEmote(ctx.Client, 715420547005284372)} {Path.GetFileName(path)}";
-            }
-
-            Console.WriteLine(Files);
-
-            dmb.AddField($"{DiscordEmoji.FromGuildEmote(ctx.Client, 715420547038838815)} FolderName : DiscordBot", $"```{Files}```");
 
             await ctx.RespondAsync(embed: dmb.Build());
         }
