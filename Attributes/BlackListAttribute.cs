@@ -3,8 +3,11 @@ using System.IO;
 using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
+using DSharpPlus.CommandsNext.Exceptions;
 using DSharpPlus.CommandsNext.Attributes;
 using static DiscordBot.Index;
+using System.Collections;
+using System.Linq;
 
 namespace DiscordBot.Attributes
 {
@@ -28,7 +31,7 @@ namespace DiscordBot.Attributes
                     {
                         ctx.Client.DebugLogger.LogMessage(LogLevel.Warning, $"{ctx.User.Username}#{ctx.User.Discriminator}", $"BlackList User used command : {ctx.Message.Content}", DateTime.Now);
                         ctx.RespondAsync("블랙리스트에 등록되어 있어요! 관리자에게 문의하세요!");
-                        return Task.FromResult(false);
+                        throw new ChecksFailedException(ctx.Command, ctx, Enumerable.Empty<CheckBaseAttribute>());
                     }
                 }
             }

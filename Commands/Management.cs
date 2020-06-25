@@ -4,6 +4,7 @@ using DiscordBot.Configs;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
+using DSharpPlus.Interactivity;
 using IronPython.Hosting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
@@ -11,6 +12,7 @@ using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Scripting.Hosting;
 using Newtonsoft.Json;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -19,14 +21,6 @@ using static DiscordBot.Account;
 using static DiscordBot.Index;
 using static DiscordBot.Utils;
 using static DiscordBot.Variable;
-using System.Diagnostics;
-using System.Runtime.InteropServices.ComTypes;
-using DSharpPlus.Interactivity;
-using System.Linq.Expressions;
-using System.Text;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using QRCoder;
 
 namespace DiscordBot
 {
@@ -510,14 +504,15 @@ namespace DiscordBot
             CheckBaseAttribute checkdonotuse = new DoNotUseAttribute();
             var command = ctx.Client.GetCommandsNext().RegisteredCommands;
             int commandcount = 0;
+            int groupcount = 0;
+            int groupchildren = 0;
 
             DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
             {
                 Title = "Commands",
                 Color = RandomColor[rnd.Next(0, RandomColor.Length - 1)],
                 Timestamp = DateTime.Now,
-                Footer = GetFooter(ctx),
-                Description = $"Command Count : "
+                Footer = GetFooter(ctx)
             };
 
             string commandlist = string.Empty;
@@ -530,6 +525,13 @@ namespace DiscordBot
                         return false;
                     else if (l.ExecutionChecks.Contains(checkdonotuse))
                         return false;
+                    else if (l is CommandGroup)
+                    {
+                        groupcount++;
+                        CommandGroup cg = l as CommandGroup;
+                        groupchildren += cg.Children.Count();
+                        return false;
+                    }
                     else
                         return true;
                 }))
@@ -561,8 +563,18 @@ namespace DiscordBot
                     foreach (Command c in command.Values.ToArray()
                         .Where(l => l.ExecutionChecks.Contains(checkadmin)))
                     {
-                        commandlist += $"`{c.Name}` ";
-                        commandcount++;
+                        if (c is CommandGroup)
+                        {
+                            CommandGroup cg = c as CommandGroup;
+                            groupcount++;
+                            groupchildren += cg.Children.Count();
+
+                        }
+                        else
+                        {
+                            commandlist += $"`{c.Name}` ";
+                            commandcount++;
+                        }
                     }
 
                     dmb.AddField("Admin Commands", commandlist);
@@ -591,7 +603,7 @@ namespace DiscordBot
                 }
             }
 
-            dmb.Description += $"{commandcount}";
+            dmb.Description = $"GroupCount : {groupcount}, Command Count : {commandcount} + {groupchildren}";
             await ctx.RespondAsync(embed: dmb.Build());
         }
 
@@ -721,11 +733,12 @@ namespace DiscordBot
         {
             await ctx.RespondAsync("Now in Git Mode");
 
-            while(true)
+            while (true)
             {
-                try {
-                var interactivity = ctx.Client.GetInteractivityModule();
-                var reactions = await interactivity.WaitForMessageAsync(l => l.Author == ctx.User, TimeSpan.FromMinutes(5));
+                try
+                {
+                    var interactivity = ctx.Client.GetInteractivityModule();
+                    var reactions = await interactivity.WaitForMessageAsync(l => l.Author == ctx.User, TimeSpan.FromMinutes(5));
 
                     if (reactions != null)
                     {
@@ -876,6 +889,87 @@ namespace DiscordBot
         public async Task GetFlags(CommandContext ctx, int flag)
         {
             await ctx.RespondAsync($"{(Attributes)flag}");
+        }
+
+        [Command("RunSay")]
+        public async Task Run_Saying(CommandContext ctx, params string[] Content)
+        {
+            Commands.Say say = new Commands.Say();
+            await say.Saying(ctx, string.Join(" ", Content));
+        }
+
+        [Command("RunException")]
+        public async Task RunException(CommandContext ctx, params string[] Message)
+        {
+            throw new Exception(string.Join(" ", Message));
+        }
+
+        [Group("Memo")]
+        class Memo
+        {
+            string memofile = "Data/Memo.txt";
+
+            [Command("Add")]
+            public async Task MemoAdd(CommandContext ctx, string key, params string[] content)
+            {
+                string value = string.Join(" ", content);
+                if (!File.Exists(memofile))
+                    File.Create(memofile);
+
+                File.AppendAllText(memofile, $"{key}:{value}");
+                await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
+            }
+
+            [Command("Remove")]
+            public async Task MemoRemove(CommandContext ctx, string key)
+            {
+                if (!File.Exists(memofile))
+                {
+                    throw new FileNotFoundException("No file found. Please use [Memo Add] to make file");
+                }
+
+                string[] content = File.ReadAllLines(memofile).Where(l => l.Split(':')[0] != key).ToArray();
+                File.WriteAllLines(memofile, content);
+                await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
+            }
+
+            [Command("Find")]
+            public async Task MemoFind(CommandContext ctx, string key)
+            {
+                foreach (string content in File.ReadAllLines(memofile))
+                {
+                    string[] ckey = content.Split(':');
+                    if (ckey[0] == key)
+                    {
+                        await ctx.RespondAsync($"{key} = {ckey[1]}");
+                        await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
+                        return;
+                    }
+                }
+
+                await ctx.RespondAsync("No key found");
+                await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":x:"));
+            }
+
+            [Command("All")]
+            public async Task MemoAll(CommandContext ctx)
+            {
+                string[] content = File.ReadAllLines(memofile);
+                string tmp = string.Empty;
+
+                foreach (string message in content)
+                {
+                    if ((tmp + message).Length > 2000)
+                    {
+                        await ctx.RespondAsync(tmp);
+                        tmp = string.Empty;
+                    }
+
+                    tmp += message.Replace(':', '=') + "\n";
+                }
+
+                await ctx.RespondAsync(tmp);
+            }
         }
     }
 }

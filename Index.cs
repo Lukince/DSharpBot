@@ -82,6 +82,18 @@ namespace DiscordBot
                     await discord.UpdateStatusAsync(new DiscordGame($"성장중인 라히예요! | Ping : {e.Ping}"));
             };
 
+            discord.GuildCreated += async e =>
+            {
+                DiscordChannel chn = await discord.GetChannelAsync(716214655390842880);
+                await chn.SendMessageAsync("New Guild : " + e.Guild.ToString());
+            };
+
+            discord.GuildDeleted += async e =>
+            {
+                DiscordChannel chn = await discord.GetChannelAsync(716214655390842880);
+                await chn.SendMessageAsync("Out Guild : " + e.Guild.ToString());
+            };
+
             voiceNext = discord.UseVoiceNext();
 
             commands = discord.UseCommandsNext(new CommandsNextConfiguration
@@ -109,6 +121,7 @@ namespace DiscordBot
             commands.RegisterCommands<Management>();
             commands.RegisterCommands<HelpCommand>();
             commands.RegisterCommands<VoiceCommand>();
+            commands.RegisterCommands<Moderator>();
 
             await discord.ConnectAsync();
             await Task.Delay(-1);
@@ -164,6 +177,9 @@ namespace DiscordBot
 
                 else if (e.Exception is ChecksFailedException)
                     return;
+
+                else if (e.Command.Name == "RunException")
+                    await e.Context.RespondAsync(e.Exception.ToString());
 
                 else
                 {

@@ -296,7 +296,7 @@ namespace DiscordBot
                 }
             }
 
-            await ctx.RespondAsync("기본 제한 시간 : 60초");
+            var bmsg = await ctx.RespondAsync("기본 제한 시간 : 60초");
             var msg = await ctx.RespondAsync("? Strike, ? Ball : ? ? ?\n" +
                 "```Result Board```");
 
@@ -329,6 +329,14 @@ namespace DiscordBot
                             i += 1;
                         }
 
+                        if (inputs[0] == -1 && inputs[1] == -1 && inputs[2] == -1)
+                        {
+                            await bmsg.DeleteAsync();
+                            await msg.DeleteAsync();
+                            await ctx.RespondAsync("게임을 종료했습니다.");
+                            return;
+                        }
+
                         foreach (int n in inputs)
                         {
                             if (n < 0 || n > 9)
@@ -357,7 +365,8 @@ namespace DiscordBot
                             inputstring += $"{ns} ";
 
                         Result += $"{count}. {sb[0]} S, {sb[1]} B : {inputstring}\n";
-                        await msg.ModifyAsync($"{sb[0]} Strike, {sb[1]} Ball : {inputstring}\n" +
+                        await msg.DeleteAsync();
+                        await ctx.RespondAsync($"{sb[0]} Strike, {sb[1]} Ball : {inputstring}\n" +
                             "```Result Board\n" +
                             $"{Result}```");
 
@@ -367,7 +376,8 @@ namespace DiscordBot
                             if (!File.Exists(RecordLocation))
                             {
                                 File.WriteAllText(RecordLocation, $"{DateTime.Now}|{count}\n");
-                                await msg.ModifyAsync($"새로운 기록! 시도 횟수 : {count} ");
+                                await msg.DeleteAsync();
+                                await ctx.RespondAsync($"새로운 기록! 시도 횟수 : {count} ");
                             }
                             else
                             {
@@ -388,7 +398,8 @@ namespace DiscordBot
                                 }
 
                                 File.AppendAllText(RecordLocation, $"{DateTime.Now}|{count}\n");
-                                await msg.ModifyAsync($"{message} 시도 횟수 : {count} ");
+                                await msg.DeleteAsync();
+                                await ctx.RespondAsync($"{message} 시도 횟수 : {count} ");
                             }
                         }
                         else
@@ -507,18 +518,73 @@ namespace DiscordBot
             }
         }
 
-        [Group("가위바위보")]
-        class RSPGame
+        [Command("가위바위보")]
+        public async Task RSPGame(CommandContext ctx)
         {
-            private async Task RSP(CommandContext ctx, int user)
+            DiscordEmoji[] rsp =
             {
-                
+                DiscordEmoji.FromName(ctx.Client, ":hand_splayed:"),
+                DiscordEmoji.FromName(ctx.Client, ":fist:"),
+                DiscordEmoji.FromName(ctx.Client, ":v:")
+            };
+
+            int bot = rnd.Next(0, 2);
+
+            var msg = await ctx.RespondAsync("10초안에 안내면 진거! 가위바위보!");
+
+            for (int i = 0; i < 3; i++)
+            {
+                await msg.CreateReactionAsync(rsp[i]);
+                Task.Delay(500);
             }
 
-            [Command("바위")]
-            public async Task RSPGame_Rock(CommandContext ctx)
+            var interactivity = ctx.Client.GetInteractivityModule();
+            var reactions = await interactivity.WaitForReactionAsync(l =>
+                l == rsp[0] || l == rsp[1] || l == rsp[2], ctx.User, TimeSpan.FromSeconds(10));
+
+            DiscordEmbedBuilder dmb = new DiscordEmbedBuilder
             {
-                
+                Title = "결과",
+                Color = DiscordColor.Green
+            };
+
+            dmb.AddField($"나({ctx.Member.Username}) vs 라히", $"{reactions.Emoji} vs {rsp[bot]}");
+            await msg.DeleteAsync();
+            await ctx.RespondAsync(embed: dmb.Build());
+
+            if (reactions != null)
+            {
+                if (reactions.Emoji == rsp[0])
+                {
+                    if (bot == 0)
+                        await ctx.RespondAsync("이런 비겼네요. 좋은 승부였다고요! ~~물론 가위바위보지만~~");
+                    else if (bot == 1)
+                        await ctx.RespondAsync("아! 제가 졌내요! 다음에는 꼭 이길꺼예요!");
+                    else
+                        await ctx.RespondAsync("히히 제가 이겼네요!");
+                }
+                else if (reactions.Emoji == rsp[1])
+                {
+                    if (bot == 0)
+                        await ctx.RespondAsync("히히 제가 이겼네요!");
+                    else if (bot == 1)
+                        await ctx.RespondAsync("이런 비겼네요. 좋은 승부였다고요! ~~물론 가위바위보지만~~");
+                    else
+                        await ctx.RespondAsync("아! 제가 졌내요! 다음에는 꼭 이길꺼예요!");
+                }
+                else if (reactions.Emoji == rsp[2])
+                {
+                    if (bot == 0)
+                        await ctx.RespondAsync("아! 제가 졌내요! 다음에는 꼭 이길꺼예요!");
+                    else if (bot == 1)
+                        await ctx.RespondAsync("히히 제가 이겼네요!");
+                    else
+                        await ctx.RespondAsync("이런 비겼네요. 좋은 승부였다고요! ~~물론 가위바위보지만~~");
+                }
+            }
+            else
+            {
+                await ctx.RespondAsync("아무것도 안내셨군요! 제가 이겼습니다!");
             }
         }
     }

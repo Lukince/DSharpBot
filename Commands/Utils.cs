@@ -178,15 +178,95 @@ namespace DiscordBot
         [Command("투표")]
         public async Task Vote(CommandContext ctx, params string[] content)
         {
+            string votefile = "Data/voteid.txt";
+            ulong voteid = 0;
+
+            do
+            {
+                voteid = Convert.ToUInt64(rnd.Next(1, 99999));
+
+                int count = File.ReadAllLines(votefile)
+                    .Where(l => Convert.ToUInt64(l.Split('|')[0]) == voteid).Count();
+
+                if (count == 0)
+                    break;
+            } while (true);
+
+            DiscordEmbedBuilder.EmbedFooter footer = GetFooter(ctx);
+            footer.Text = $"Vote id = {voteid}";
+
             DiscordEmbedBuilder dmb = new DiscordEmbedBuilder
             {
                 Title = $"주제 : {string.Join(" ", content)}",
+                Footer = footer,
                 Color = RandomColor[rnd.Next(0, RandomColor.Length - 1)]
             };
 
             var msg = await ctx.RespondAsync(embed: dmb.Build());
             await msg.CreateReactionAsync(DiscordEmoji.FromGuildEmote(ctx.Client, 617684865529282570));
             await msg.CreateReactionAsync(DiscordEmoji.FromGuildEmote(ctx.Client, 617684780691095555));
+
+            File.AppendAllText(votefile, $"{voteid}|{ctx.User.Id}|{ctx.Channel.Id}|{msg.Id}");
+        }
+
+        [Command("투표종료")]
+        public async Task EndVote(CommandContext ctx, int iid)
+        {
+            ulong id = Convert.ToUInt64(iid);
+            string votefile = "Data/voteid.txt";
+            foreach (string file in File.ReadAllLines(votefile))
+            {
+                string[] s = file.Split('|');
+                ulong vid = Convert.ToUInt64(s[0]);
+                ulong uid = Convert.ToUInt64(s[1]);
+
+                if (vid == id && uid == ctx.User.Id)
+                {
+                    ulong cid = Convert.ToUInt64(s[2]);
+                    ulong mid = Convert.ToUInt64(s[3]);
+                    DiscordEmoji Temoji = DiscordEmoji.FromGuildEmote(ctx.Client, 617684865529282570);
+                    DiscordEmoji Femoji = DiscordEmoji.FromGuildEmote(ctx.Client, 617684780691095555);
+
+                    DiscordChannel chn = await ctx.Client.GetChannelAsync(cid);
+                    DiscordMessage msg = await chn.GetMessageAsync(mid);
+                    DiscordReaction[] reactions = msg.Reactions.ToArray();
+
+                    uint Rt = Convert.ToUInt32(reactions.Where(l => l.Emoji == Temoji).Count() - 1);
+                    uint Rf = Convert.ToUInt32(reactions.Where(l => l.Emoji == Femoji).Count() - 1);
+
+                    DiscordEmbed msgembed = msg.Embeds.ToArray()[0];
+
+                    DiscordEmbedBuilder dmb = new DiscordEmbedBuilder
+                    {
+                        Title = "결과",
+                        Description = $"{msgembed.Title}"
+                    };
+
+                    string result = string.Empty;
+
+                    if (Rt > Rf)
+                        result = "투표 결과 : 찬성";
+                    else if (Rt == Rf)
+                        result = "투표 결과 : 동일";
+                    else
+                        result = "투표 결과 : 반대";
+
+                    dmb.AddField("찬성 : 표, 반대 : 표", result);
+
+                    string[] remove = File.ReadAllLines(votefile)
+                        .Where(l => Convert.ToUInt64(l.Split('|')[0]) != id).ToArray();
+                    File.WriteAllLines(votefile, remove);
+
+                    var vmsg = await ctx.RespondAsync("5초 뒤에 결과를 발표합니다!");
+                    await Task.Delay(5000);
+                    await vmsg.ModifyAsync(embed: dmb.Build());
+
+                }
+                else if (vid == id && uid != ctx.User.Id)
+                    throw new ArgumentException("투표를 진행한 유저가 아닙니다!");
+                else if (vid != id)
+                    throw new ArgumentException("알수 없는 투표 아이디입니다");
+            }
         }
 
         [Command("반전")]
@@ -280,6 +360,24 @@ namespace DiscordBot
 
                 await ctx.RespondAsync($"으엑.. 정보를 받아오지 못했어요..\n```{e.Message}\nTip : {tip}```");
             }
+        }
+
+        [Command("깃다운로드")]
+        public async Task GitDownload(CommandContext ctx, string username, string resname, params string[] filename)
+        {
+            WebClient web = new WebClient()
+            {
+                BaseAddress = "https://raw.githubusercontent.com/"
+            };
+
+            string Header = $"{username}/{resname}/master/{string.Join("%20", filename)}";
+            string[] tmp = string.Join(" ", filename).Split('/');
+            string file = tmp[tmp.Length - 1];
+
+            byte[] data = web.DownloadData(Header);
+            File.WriteAllBytes(file, data);
+            await ctx.RespondWithFileAsync(file);
+            File.Delete(file);
         }
 
         private DiscordEmbedBuilder GetInfo(CommandContext ctx, ulong UserId)
@@ -909,6 +1007,12 @@ namespace DiscordBot
             dmb.AddField("단축된 Url", content);
 
             await ctx.RespondAsync(embed: dmb.Build());
+        }
+
+        [Command("Dll"), CheckAdmin]
+        public async Task DllSearch(CommandContext ctx, string content)
+        {
+            string url = $"https://ko.dll-files.com/search/?q={content}";
         }
     }
 }
