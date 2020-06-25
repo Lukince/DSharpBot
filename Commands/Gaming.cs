@@ -535,7 +535,7 @@ namespace DiscordBot
             for (int i = 0; i < 3; i++)
             {
                 await msg.CreateReactionAsync(rsp[i]);
-                Task.Delay(500);
+                Task.Delay(1000);
             }
 
             var interactivity = ctx.Client.GetInteractivityModule();
