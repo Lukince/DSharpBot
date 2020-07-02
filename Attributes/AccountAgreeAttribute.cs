@@ -39,8 +39,8 @@ namespace DiscordBot.Attributes
                     dmb.Description += "\n현재 사용자의 계정은 보관이 된 상태이며 동의 이후 정상 진행됩니다.";
                 }
 
-                DiscordEmoji Correct = DiscordEmoji.FromGuildEmote(ctx.Client, 617684865529282570);
-                DiscordEmoji NotCorrect = DiscordEmoji.FromGuildEmote(ctx.Client, 617684780691095555);
+                DiscordEmoji Correct = DiscordEmoji.FromGuildEmote(ctx.Client, GetEmoji("Correct"));
+                DiscordEmoji NotCorrect = DiscordEmoji.FromGuildEmote(ctx.Client, GetEmoji("NotCorrect"));
 
                 var msg = await ctx.RespondAsync(embed: dmb.Build());
                 await msg.CreateReactionAsync(Correct);

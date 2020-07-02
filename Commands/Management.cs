@@ -6,6 +6,7 @@ using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity;
 using IronPython.Hosting;
+using IronPython.Runtime.Operations;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
@@ -16,6 +17,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using static DiscordBot.Account;
 using static DiscordBot.Index;
@@ -384,7 +386,7 @@ namespace DiscordBot
             if (cs1 == -1 || cs2 == -1)
                 throw new ArgumentException("You need to wrap the code into a code block.");
 
-            var cs = code.Substring(cs1, cs2 - cs1);
+            var cs = code[cs1..cs2];
 
             msg = await ctx.RespondAsync("", embed: new DiscordEmbedBuilder()
                 .WithColor(new DiscordColor("#FF007F"))
@@ -450,7 +452,7 @@ namespace DiscordBot
                 for (int i = 0; i < 3; i++)
                 {
                     string[] s = File.ReadLines(HistoryPath).ToArray();
-                    string[] v = s[s.Length - 1].Split('|')[1].Split('.');
+                    string[] v = s[^1].Split('|')[1].Split('.');
                     version[i] = int.Parse(v[i]);
                 }
 
@@ -502,7 +504,7 @@ namespace DiscordBot
         {
             CheckBaseAttribute checkadmin = new CheckAdminAttribute();
             CheckBaseAttribute checkdonotuse = new DoNotUseAttribute();
-            var command = ctx.Client.GetCommandsNext().RegisteredCommands;
+            var command = ctx.CommandsNext.RegisteredCommands;
             int commandcount = 0;
             int groupcount = 0;
             int groupchildren = 0;
@@ -555,6 +557,9 @@ namespace DiscordBot
                         commandcount++;
                     }
 
+                    if (string.IsNullOrEmpty(commandlist))
+                        continue;
+
                     dmb.AddField("Hidden Commands", commandlist);
                 }
                 else if (op == "--admin")
@@ -577,6 +582,9 @@ namespace DiscordBot
                         }
                     }
 
+                    if (string.IsNullOrEmpty(commandlist))
+                        continue;
+
                     dmb.AddField("Admin Commands", commandlist);
                 }
                 else if (op == "--notuse")
@@ -588,6 +596,9 @@ namespace DiscordBot
                         commandlist += $"`{c.Name}` ";
                         commandcount++;
                     }
+
+                    if (string.IsNullOrEmpty(commandlist))
+                        continue;
 
                     dmb.AddField("NotUse Commands", commandlist);
                 }
@@ -625,8 +636,9 @@ namespace DiscordBot
 
             for (int i = 0; i < gs.Length; i++)
             {
+                var bot = await gs[i].GetMemberAsync(ctx.Client.CurrentUser.Id);
                 var members = gs[i].Members;
-                dmb.AddField(gs[i].Name, $"All : {members.Count}, Member : {members.Where(l => !l.IsBot).Count()}, Bot : {members.Where(l => l.IsBot).Count()}");
+                dmb.AddField(gs[i].Name, $"All : {members.Count}, Member : {members.Where(l => !l.IsBot).Count()}, Bot : {members.Where(l => l.IsBot).Count()} - 봇 이름: \"{bot.DisplayName}\"");
             }
 
             await ctx.Member.SendMessageAsync(embed: dmb.Build());
@@ -829,14 +841,14 @@ namespace DiscordBot
         [Command("Shutdown")]
         public async Task Shutdown(CommandContext ctx)
         {
-            ctx.RespondAsync("Shutdown Program");
+            await ctx.RespondAsync("Shutdown Program");
             Environment.Exit(0);
         }
 
         [Command("Restart")]
         public async Task Reboot(CommandContext ctx)
         {
-            ctx.RespondAsync("Rebooting");
+            await ctx.RespondAsync("Rebooting");
             Process.Start("DiscordBot.exe");
             Environment.Exit(0);
         }
@@ -844,7 +856,7 @@ namespace DiscordBot
         [Group("Admin"), CheckAdmin]
         class Admin
         {
-            private string AdminId = "Data/AdminId.txt";
+            private readonly string AdminId = "Data/AdminId.txt";
 
             [Command("Add")]
             public async Task AddAdmin(CommandContext ctx, ulong id)
@@ -905,9 +917,10 @@ namespace DiscordBot
         }
 
         [Group("Memo")]
+        [BlackList, CheckAdmin]
         class Memo
         {
-            string memofile = "Data/Memo.txt";
+            readonly string memofile = "Data/Memo.txt";
 
             [Command("Add")]
             public async Task MemoAdd(CommandContext ctx, string key, params string[] content)
@@ -965,11 +978,30 @@ namespace DiscordBot
                         tmp = string.Empty;
                     }
 
-                    tmp += message.Replace(':', '=') + "\n";
+                    tmp += message.Replace(':', '=') + Environment.NewLine;
                 }
 
                 await ctx.RespondAsync(tmp);
             }
+        }
+
+        [Command("Mode")]
+        public async Task Mode(CommandContext ctx, string option)
+        {
+            if (option.ToLower() == "chat")
+                UseSaying = true;
+            else if (option.ToLower() == "error")
+                UseSaying = false;
+            else
+                throw new ArgumentException("```사용 가능한 인수 : Chat, Error```");
+
+            await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
+        }
+
+        [Command("GetTextTest")]
+        public async Task GetTextTest(CommandContext ctx, params string[] _)
+        {
+            await ctx.RespondAsync(ctx.Message.Content.Remove(0, 4));
         }
     }
 }

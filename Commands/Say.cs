@@ -3,6 +3,13 @@ using DiscordBot.Attributes;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using System.Threading.Tasks;
+using DSharpPlus.Entities;
+using static DiscordBot.Variable;
+using DSharpPlus.Interactivity;
+using System.IO;
+using IronPython.Runtime;
+using System.Collections.Generic;
+using System.Security.Cryptography;
 
 namespace DiscordBot.Commands
 {
@@ -22,16 +29,101 @@ namespace DiscordBot.Commands
     [BlackList]
     class Say
     {
+        readonly string WordPath = "Data/Words.dat";
+
+        [Command("단어추가")]
+        public async Task WordAdd(CommandContext ctx, string word, params string[] description)
+        {
+            DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
+            {
+                Title = "추가 확인",
+                Footer = GetFooter(ctx),
+                Timestamp = DateTime.Now
+            };
+
+            dmb.AddField($"{word} => {string.Join(' ', description)}",
+                "단어 추가 유의 사항\n" +
+                "1. 단어를 추가하게 되면 모든 이들이 사용할 수 있게 됩니다.\n" +
+                "2. 단어나 문장에 욕설이나 비하 등은 작성하지 마십시오\n" +
+                "3. 다른이가 올린 단어와 겹치는 경우 랜덤한 확률로 나옵니다\n" +
+                "4. 단어는 띄어쓰기 없이 써주세요");
+
+            var msg = await ctx.RespondAsync(embed: dmb.Build());
+            await msg.CreateReactionAsync(DiscordEmoji.FromGuildEmote(ctx.Client, GetEmoji("Correct")));
+            await msg.CreateReactionAsync(DiscordEmoji.FromGuildEmote(ctx.Client, GetEmoji("NotCorrect")));
+
+            var interactivity = ctx.Client.GetInteractivityModule();
+            var reactions = await interactivity.WaitForReactionAsync(l => l.Id == GetEmoji("Correct") || l.Id == GetEmoji("NotCorrect"), ctx.User);
+
+            if (reactions != null)
+            {
+                if (reactions.Emoji.Id == GetEmoji("Correct"))
+                {
+                    AddWords(word, string.Join(' ', description));
+                    await msg.DeleteAsync();
+                    await ctx.RespondAsync($"`{word}`(은)는 `{string.Join(' ', description)}`이군요!");
+                }
+                else
+                {
+                    await msg.DeleteAsync();
+                    await ctx.RespondAsync("취소되었습니다");
+                }
+
+            }
+        }
+
+        private void AddWords(string word, string description)
+        {
+            string content = $"{word}|{description}";
+
+            if (!File.Exists(WordPath))
+                File.Create(WordPath);
+
+            File.AppendAllText(WordPath, content);
+        }
+
         public async Task Saying(CommandContext ctx, string Content)
         {
             Random rnd = new Random();
 
-            if (Content.Contains("안녕") || Content.Contains("안뇽")
+            if (Content == "생일")
+            {
+                var date = ctx.Client.CurrentUser.CreationTimestamp;
+                int age = DateTime.Now.Year - date.Year;
+                await ctx.RespondAsync($"라히의 생일은 {date.Month}월 {date.Day}일 이예요! 이제 만 {age}세예요!");
+            }
+
+            else if (Content.Contains("안녕") || Content.Contains("안뇽")
              || Content.Contains("안녀엉") || Content.Contains("반가워")
              || Content.Contains("안뇨옹") || Content.Contains("헬로")
              || Content.Contains("핼로") || Content.Contains("하이"))
             {
                 await ctx.RespondAsync(SayVariable.Hello[rnd.Next(0, SayVariable.Hello.Length - 1)]);
+            }
+            else
+            {
+                if (!File.Exists(WordPath))
+                    return;
+
+                string[] lines = File.ReadAllLines(WordPath);
+                List<string> list = null;
+
+                foreach (string content in lines)
+                {
+                    string[] s = content.Split('|');
+                    string word = s[0];
+                    string description = s[1];
+
+                    list = new List<string>();
+
+                    if (word == RemoveSpace(content))
+                        list.Add(content);
+                }
+
+                string[] directory = list.ToArray();
+                string[] ss = directory[rnd.Next(0, directory.Length - 1)].Split('|');
+
+                await ctx.RespondAsync($"{ss[1]}\n```{ss[2]}님이 알려주셨어요!```");
             }
         }
     }

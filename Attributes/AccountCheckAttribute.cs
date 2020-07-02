@@ -1,6 +1,8 @@
 ﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
+using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace DiscordBot.Attributes
@@ -14,6 +16,9 @@ namespace DiscordBot.Attributes
 
             if (ctx.Client.CurrentApplication.Owner == ctx.User)
                 return Task.FromResult(true);
+
+            if (ctx.Command.ExecutionChecks.Contains(new DoNotUseAttribute()))
+                return Task.FromResult(false);
 
             string Id = $"Account/{ctx.User.Id}";
             if (File.Exists(Id))

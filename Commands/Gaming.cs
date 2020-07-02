@@ -1,4 +1,6 @@
 ﻿using DiscordBot.Attributes;
+using DiscordBot.Exceptions;
+using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
@@ -10,6 +12,7 @@ using System.Threading.Tasks;
 using static DiscordBot.Account;
 using static DiscordBot.Utils;
 using static DiscordBot.Variable;
+using static DSharpPlus.Entities.DiscordEmbedBuilder;
 
 namespace DiscordBot
 {
@@ -29,7 +32,7 @@ namespace DiscordBot
             return PlayBoard;
         }
 
-        [Group("큐브")]
+        [Group("큐브"), BlackList, AccountCheck]
         class CubeGame
         {
             [Command("갯수")]
@@ -209,6 +212,16 @@ namespace DiscordBot
                     }
                 }
             }
+        }
+
+        [Command("코인")]
+        public async Task CoinCount(CommandContext ctx)
+        {
+            string Id = $"Account/{ctx.User.Id}";
+            string json = File.ReadAllText(Id);
+            UserInfo ui = JsonConvert.DeserializeObject<UserInfo>(json);
+
+            await ctx.RespondAsync($"{ctx.User.Username}님은 {ui.Money}코인을 가지고 계세요!");
         }
 
         [Command("리워드")]
@@ -535,7 +548,7 @@ namespace DiscordBot
             for (int i = 0; i < 3; i++)
             {
                 await msg.CreateReactionAsync(rsp[i]);
-                Task.Delay(1000);
+                await Task.Delay(1000);
             }
 
             var interactivity = ctx.Client.GetInteractivityModule();
@@ -585,6 +598,141 @@ namespace DiscordBot
             else
             {
                 await ctx.RespondAsync("아무것도 안내셨군요! 제가 이겼습니다!");
+            }
+        }
+
+        [Description("도박")]
+        [BlackList, AccountCheck]
+        class Gambling
+        {
+            uint Money = 0;
+            uint Cube = 0;
+
+            [Command("갈림길"), RequireUserPermissions(Permissions.ManageMessages), DoNotUse]
+            public async Task RightOrLeft(CommandContext ctx)
+            {
+                string Id = $"{IdLocation}/{ctx.User.Id}";
+                string json = File.ReadAllText(Id);
+                UserInfo ui = JsonConvert.DeserializeObject<UserInfo>(json);
+
+                if (ui.Money < 1)
+                    throw new NotEnoughItemException();
+
+                EmbedFooter footer = new EmbedFooter()
+                {
+                    IconUrl = ctx.User.AvatarUrl,
+                    Text = $"탐험가 : {ctx.User.Username}#{ctx.User.Discriminator}"
+                };
+
+                DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
+                {
+                    Title = "오른쪽 왼쪽 갈림길 선택",
+                    Footer = footer,
+                    Timestamp = DateTime.Now
+                };
+
+                var emojileft = DiscordEmoji.FromName(ctx.Client, ":arrow_left:");
+                var emojistop = DiscordEmoji.FromName(ctx.Client, ":stop_button:");
+                var emojiright = DiscordEmoji.FromName(ctx.Client, ":arrow_right:");
+
+                var msg = await ctx.RespondAsync(embed: dmb.Build());
+                await Task.Delay(1000);
+
+                msg.CreateReactionAsync(emojileft);
+                msg.CreateReactionAsync(emojistop);
+                msg.CreateReactionAsync(emojiright);
+
+                var interactivity = ctx.Client.GetInteractivityModule();
+
+                Again:
+
+                var reactions = await interactivity.WaitForReactionAsync(l => l == emojileft || l == emojiright || l == emojistop,
+                    ctx.User,
+                    TimeSpan.FromMinutes(5));
+
+                if (reactions != null)
+                {
+                    if (reactions.Emoji == emojileft || reactions.Emoji == emojiright)
+                    {
+                        if (reactions.Emoji == emojileft)
+                            await msg.DeleteReactionAsync(emojileft, ctx.User);
+                        else
+                            await msg.DeleteReactionAsync(emojiright, ctx.User);
+
+                        string s = RandomAddtion();
+
+                        if (s == null)
+                        {
+                            Money = 0;
+                            Cube = 0;
+                            return;
+                        }
+
+                        dmb.Title = s;
+                        dmb.Timestamp = DateTime.Now;
+
+                        await msg.ModifyAsync(embed: dmb.Build());
+
+                        goto Again;
+                    }
+                    else if (reactions.Emoji == emojistop)
+                        goto Result;
+                }
+                else
+                {
+                    await ctx.RespondAsync("5분동안 탐험하지 않았으므로 탐험이 종료됩니다.");
+                    goto Result;
+                }
+
+                Result:
+                {
+                    string s;
+
+                    if (Money == 0 && Cube == 0)
+                        s = "얻은 것이 없다.";
+                    else if (Money == 0 && Cube != 0)
+                        s = $"큐브 {Cube}개를 얻었다!";
+                    else if (Money != 0 && Cube == 0)
+                        s = $"{Money}코인을 얻었다!";
+                    else
+                        s = $"큐브 {Cube}개와 {Money}코인을 얻었다!";
+
+                    await msg.DeleteAsync();
+                    await ctx.RespondAsync(s);
+
+                    ui.Money += Money;
+                    ui.Cube += Cube;
+                    ui.Money -= 1;
+
+                    string roljson = JsonConvert.SerializeObject(ui, Formatting.Indented);
+                    File.WriteAllText(Id, roljson);
+                }
+            }
+
+            private string RandomAddtion()
+            {
+                int random = rnd.Next(1, 100);
+                string s;
+
+                if (1 <= random && random <= 30)
+                {
+                    uint i = (uint)rnd.Next(1, 3);
+                    Money += i;
+                    s = $"{i}코인을 발견했다!";
+                }
+                else if (31 <= random && random <= 50)
+                {
+                    uint i = (uint)rnd.Next(1, 2);
+                    Cube += i;
+                    s = $"큐브 {i}를 휙득했다!";
+                }
+                else if (51 <= random && random <= 80)
+                    s = "아무것도 없었다.";
+                else
+                    s = null;
+
+                return s;
+
             }
         }
     }

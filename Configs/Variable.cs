@@ -12,6 +12,7 @@ using IronPython.Runtime;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.Scripting.Actions;
 
 namespace DiscordBot
 {
@@ -164,5 +165,35 @@ namespace DiscordBot
 
             public DiscordClient Client;
         }
+
+        public static Dictionary<string, ulong> DiscordEmojis = new Dictionary<string, ulong>()
+        {
+            { "Correct", 617684865529282570 },
+            { "NotCorrect", 617684780691095555 }
+        };
+
+        public static ulong GetEmoji(string Key)
+        {
+            if (DiscordEmojis.TryGetValue(Key, out ulong value))
+                return value;
+            else
+                throw new ArgumentException("Wrong Key");
+        }
+
+        public static string RemoveSpace(params string[] content)
+        {
+            string s = string.Join(' ', content);
+
+            return s.Where(l =>
+            {
+                if (l == ' ')
+                    return false;
+                else
+                    return true;
+            }).ToString();
+        }
+
+        /*TODO: 사용자와 정보 비교시 적거나 많은 경우를 따져서 특정 메서드로 따로 받게하기
+         * ex) ui.Money < 1 => 돈이 부족해요! 현재 소지금 : {ui.Money} */
     }
 }

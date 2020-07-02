@@ -8,17 +8,21 @@ using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Net.Abstractions;
+using Encryption;
 using ImageProcessor;
+using ImageProcessor.Imaging;
 using MoreExtension;
 using Newtonsoft.Json;
 using QRCoder;
 using System;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using static DiscordBot.Account;
 using static DiscordBot.Config;
@@ -372,7 +376,7 @@ namespace DiscordBot
 
             string Header = $"{username}/{resname}/master/{string.Join("%20", filename)}";
             string[] tmp = string.Join(" ", filename).Split('/');
-            string file = tmp[tmp.Length - 1];
+            string file = tmp[^1];
 
             byte[] data = web.DownloadData(Header);
             File.WriteAllBytes(file, data);
@@ -641,15 +645,28 @@ namespace DiscordBot
             }
         }
 
-        [Group("암호")]
+        [Group("암호"), BlackList]
         class Security
         {
+            RSAEncryption rsa = new RSAEncryption();
+            WithBase32 base32 = new WithBase32();
+            WithBase64 base64 = new WithBase64();
+
+            private string ReplaceString(CommandContext ctx, string s)
+            {
+                return s.Replace("//Self/", ctx.Message.Content)
+                                .Replace("//UserName/", ctx.User.Username)
+                                .Replace("//DisplayName/", ctx.Member.DisplayName);
+            }
+
             [Command("암호화")]
             public async Task Encryption
                 (CommandContext ctx, string BaseOption, string EncodingOption, params string[] content)
             {
-                WithBase32 base32 = new WithBase32();
-                WithBase64 base64 = new WithBase64();
+                if (string.Join(' ', content) == string.Empty || string.IsNullOrWhiteSpace(string.Join(' ', content)))
+                    throw new ArgumentException("공백을 암호화 할수는 없습니다!");
+
+                string[] keys = rsa.GetKey();
 
                 DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
                 {
@@ -661,7 +678,8 @@ namespace DiscordBot
                     Footer = GetFooter(ctx)
                 };
 
-                string input = string.Join(" ", content);
+                string s = string.Join(" ", content);
+                string input = ReplaceString(ctx, s);
                 string output;
                 Encoding encoding;
 
@@ -674,23 +692,28 @@ namespace DiscordBot
                 else if (BaseOption.ToLower() == "base64")
                     try { output = base64.Encrypt(encoding, input); }
                     catch (Exception) { throw new EncryptionException(); }
+                else if (BaseOption.ToLower() == "rsa")
+                    try { output = rsa.RSAEncrypt(input, keys[1], encoding); }
+                    catch (Exception) { throw new EncryptionException(); }
                 else
                 {
                     throw new EncryptionArgumentException("Encryption");
                 }
 
-                dmb.AddField(":inbox_tray:", $"```{input}```");
-                dmb.AddField(":outbox_tray:", $"```{output}```");
+                dmb.AddField(":inbox_tray: Input", $"```{input}```");
+                dmb.AddField(":outbox_tray: Output", $"```{output}```");
 
                 await ctx.RespondAsync(embed: dmb.Build());
+                if (BaseOption.ToLower() == "rsa")
+                    await ctx.Member.SendMessageAsync($"암호 개인키 : {keys[0]}");
             }
 
             [Command("해독")]
             public async Task Decryption
                 (CommandContext ctx, string BaseOption, string EncodingOption, params string[] content)
             {
-                WithBase32 base32 = new WithBase32();
-                WithBase64 base64 = new WithBase64();
+                if (string.Join(' ', content) == string.Empty || string.IsNullOrWhiteSpace(string.Join(' ', content)))
+                    throw new ArgumentException("공백을 해독 할수는 없습니다!");
 
                 DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
                 {
@@ -702,7 +725,8 @@ namespace DiscordBot
                     Footer = GetFooter(ctx)
                 };
 
-                string input = string.Join(" ", content);
+                string s = string.Join(" ", content);
+                string input = ReplaceString(ctx, s);
                 string output;
                 Encoding encoding;
 
@@ -715,22 +739,39 @@ namespace DiscordBot
                 else if (BaseOption.ToLower() == "base64")
                     try { output = base64.Decrypt(encoding, input); }
                     catch (Exception) { throw new EncryptionException(); }
+                else if (BaseOption.ToLower() == "rsa")
+                    try
+                    { 
+                        var interactivity = ctx.Client.GetInteractivityModule();
+                        var respond = await interactivity.WaitForMessageAsync(l => 
+                            l.Author == ctx.User && l.Channel == ctx.Channel);
+
+                        if (respond != null)
+                        {
+                            output = rsa.RSADecrypt(input, respond.Message.Content, encoding);
+                        }
+                        else
+                        {
+                            output = null;
+                        }
+                    }
+                    catch (Exception) { throw new EncryptionException(); }
                 else
                 {
                     throw new EncryptionArgumentException("Encryption");
                 }
 
-                dmb.AddField(":inbox_tray:", $"```{input}```");
-                dmb.AddField(":outbox_tray:", $"```{output}```");
+                dmb.AddField(":inbox_tray: Input", $"```{input}```");
+                dmb.AddField(":outbox_tray: Output", $"```{output}```");
 
                 await ctx.RespondAsync(embed: dmb.Build());
             }
         }
 
-        [Group("변환")]
+        [Group("변환"),BlackList]
         class Converts
         {
-            [Group("색깔")]
+            [Group("색깔"), BlackList]
             class ConvertColor
             {
                 [Command("Web")]
@@ -798,7 +839,7 @@ namespace DiscordBot
                     await ctx.RespondAsync(embed: dmb.Build());
                 }
 
-                [Group("이미지"), DoNotUse]
+                [Group("이미지"), DoNotUse, BlackList]
                 class GetColorImage
                 {
                     [Command("Web")]
@@ -818,7 +859,7 @@ namespace DiscordBot
                     [Command("RGB")]
                     public async Task Image_RGB(CommandContext ctx, int r, int g, int b)
                     {
-                        ctx.CommandsNext.SudoAsync(ctx.User, ctx.Channel, $"라히야 색깔 이미지 rgb {r} {g} {b}");
+                        await ctx.CommandsNext.SudoAsync(ctx.User, ctx.Channel, $"라히야 색깔 이미지 rgb {r} {g} {b}");
                     }
 
                     [Command("rgb")]
@@ -847,7 +888,7 @@ namespace DiscordBot
                     await ctx.RespondAsync(s.Convert(FromBase, ToBase).ToString());
             }
 
-            [Group("바이너리")]
+            [Group("바이너리"), BlackList]
             class Binary
             {
                 [Command("바이트")]
@@ -1009,10 +1050,53 @@ namespace DiscordBot
             await ctx.RespondAsync(embed: dmb.Build());
         }
 
-        [Command("Dll"), CheckAdmin]
+        //[Command("Dll")]
         public async Task DllSearch(CommandContext ctx, string content)
         {
             string url = $"https://ko.dll-files.com/search/?q={content}";
+        }
+
+        [BlackList, Group("개발")]
+        class Develope
+        {
+            [Command("csc")]
+            public async Task csCompile(CommandContext ctx, string option = null)
+            {
+                if (ctx.Message.Attachments == null)
+                    throw new ArgumentException("cs파일이 없습니다");
+
+                string file = $"u{ctx.User.Id}";
+
+                WebClient web = new WebClient();
+                web.DownloadFile(ctx.Message.Attachments[0].Url, file + ".cs");
+
+                Process process = new Process();
+                ProcessStartInfo psinfo = new ProcessStartInfo
+                {
+                    FileName = "csc.exe",
+                    Arguments = file + ".cs",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    CreateNoWindow = true
+                };
+
+                process.StartInfo = psinfo;
+                process.Start();
+
+                string line = string.Empty;
+
+                while (!process.StandardOutput.EndOfStream)
+                {
+                    line += process.StandardOutput.ReadLine() + Environment.NewLine;
+                }
+
+                await ctx.RespondAsync($"Output:\n```{line}```");
+
+                if (File.Exists(file + ".exe"))
+                    await ctx.RespondWithFileAsync(file + ".exe");
+                else
+                    await ctx.RespondAsync("Fail to Compile");
+            }
         }
     }
 }

@@ -20,6 +20,9 @@ namespace DiscordBot.Attributes
             if (GetAdminIds().Contains(ctx.User.Id))
                 return Task.FromResult(true);
 
+            if (ctx.Command.ExecutionChecks.Contains(new DoNotUseAttribute()))
+                return Task.FromResult(false);
+
             ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":x:"));
             ctx.RespondAsync("봇을 관리할 권한이 없어요!");
             return Task.FromResult(false);

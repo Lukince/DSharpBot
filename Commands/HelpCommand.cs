@@ -92,19 +92,7 @@ namespace DiscordBot.Commands
 
     class HelpCommand
     {
-        [Command("?"), Hidden]
-        public async Task Help3(CommandContext ctx)
-        {
-            await ctx.CommandsNext.SudoAsync(ctx.User, ctx.Channel, "라히야 도움말");
-        }
-
-        [Command("도움"), Hidden]
-        public async Task Help2(CommandContext ctx)
-        {
-            await ctx.CommandsNext.SudoAsync(ctx.User, ctx.Channel, "라히야 도움말");
-        }
-
-        [Command("도움말")]
+        [Command("도움말"), Aliases(new string[] { "도움", "?", "help" })]
         public async Task Help(CommandContext ctx, int page = -714576)
         {
             bool nul = false;
