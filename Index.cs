@@ -9,6 +9,7 @@ using DSharpPlus.Interactivity;
 using DSharpPlus.VoiceNext;
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 using static DiscordBot.Variable;
@@ -66,7 +67,8 @@ namespace DiscordBot
 
                         if (e.Message.Content.Trim() == "라히야")
                         {
-                            await e.Message.RespondAsync("네? 저 부르셨나요?");
+                            Variable v = new Variable();
+                            v.CallName(e.Message);
                         }
                     }
                     else if (e.Message.Content.StartsWith("라히야 관리자"))

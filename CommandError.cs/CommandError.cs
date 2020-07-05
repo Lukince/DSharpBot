@@ -96,7 +96,16 @@ namespace DiscordBot
                 {
                     Say say = new Say();
                     string content = e.Context.Message.Content.Split("라히야")[1].Trim();
-                    await say.Saying(e.Context, content);
+
+                    if (string.IsNullOrEmpty(RemoveSpace(content)))
+                    {
+                        Variable v = new Variable();
+                        v.CallName(e.Context.Message);
+                    }
+                    else
+                        await say.Saying(e.Context, content);
+
+                    //TODO: 같은 설명의 단어는 추가 건너뛰기
                 }
                 else
                 {
