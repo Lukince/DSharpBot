@@ -23,7 +23,7 @@ namespace DiscordBot
         public DiscordWebhook webhook { get; private set; }
         public static VoiceNextClient voiceNext;
 
-        public static bool UseSaying = false;
+        public static bool UseSaying = true;
         public static string StartDate;
         public static bool changePresence = true;
         public static DateTime StartTime = DateTime.Now;

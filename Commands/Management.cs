@@ -518,6 +518,7 @@ namespace DiscordBot
             };
 
             string commandlist = string.Empty;
+            string grouplist = string.Empty;
 
             foreach (Command c in command.Values.ToArray()
                 .Where(l => {
@@ -532,6 +533,7 @@ namespace DiscordBot
                         groupcount++;
                         CommandGroup cg = l as CommandGroup;
                         groupchildren += cg.Children.Count();
+                        grouplist += $"`{cg.Name}` ";
                         return false;
                     }
                     else
@@ -573,7 +575,7 @@ namespace DiscordBot
                             CommandGroup cg = c as CommandGroup;
                             groupcount++;
                             groupchildren += cg.Children.Count();
-
+                            grouplist += $"`{cg.Name}` ";
                         }
                         else
                         {
@@ -613,6 +615,8 @@ namespace DiscordBot
                     return;
                 }
             }
+
+            dmb.AddField("Group List", grouplist);
 
             dmb.Description = $"GroupCount : {groupcount}, Command Count : {commandcount} + {groupchildren}";
             await ctx.RespondAsync(embed: dmb.Build());
@@ -993,7 +997,15 @@ namespace DiscordBot
             else if (option.ToLower() == "error")
                 UseSaying = false;
             else
-                throw new ArgumentException("```사용 가능한 인수 : Chat, Error```");
+            {
+                string mode;
+
+                if (UseSaying)
+                    mode = "Chat";
+                else
+                    mode = "Error";
+                throw new ArgumentException($"Current Mode : {mode}\n```사용 가능한 인수 : Chat, Error```");
+            }
 
             await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
         }
@@ -1002,6 +1014,13 @@ namespace DiscordBot
         public async Task GetTextTest(CommandContext ctx, params string[] _)
         {
             await ctx.RespondAsync(ctx.Message.Content.Remove(0, 4));
+        }
+
+        [Command("AddWord")]
+        public async Task AddWords(CommandContext ctx, string word, params string[] content)
+        {
+            File.AppendAllText(WordPath, $"{word}|{string.Join(' ', content)}\n");
+            await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
         }
     }
 }

@@ -29,8 +29,6 @@ namespace DiscordBot.Commands
     [BlackList]
     class Say
     {
-        readonly string WordPath = "Data/Words.dat";
-
         [Command("단어추가")]
         public async Task WordAdd(CommandContext ctx, string word, params string[] description)
         {
@@ -49,6 +47,7 @@ namespace DiscordBot.Commands
                 "4. 단어는 띄어쓰기 없이 써주세요");
 
             var msg = await ctx.RespondAsync(embed: dmb.Build());
+            await Task.Delay(1000);
             await msg.CreateReactionAsync(DiscordEmoji.FromGuildEmote(ctx.Client, GetEmoji("Correct")));
             await msg.CreateReactionAsync(DiscordEmoji.FromGuildEmote(ctx.Client, GetEmoji("NotCorrect")));
 
@@ -59,7 +58,7 @@ namespace DiscordBot.Commands
             {
                 if (reactions.Emoji.Id == GetEmoji("Correct"))
                 {
-                    AddWords(word, string.Join(' ', description));
+                    AddWords(ctx, word, string.Join(' ', description));
                     await msg.DeleteAsync();
                     await ctx.RespondAsync($"`{word}`(은)는 `{string.Join(' ', description)}`이군요!");
                 }
@@ -72,14 +71,14 @@ namespace DiscordBot.Commands
             }
         }
 
-        private void AddWords(string word, string description)
+        private void AddWords(CommandContext ctx, string word, string description)
         {
-            string content = $"{word}|{description}";
+            string content = $"{word}|{description}|{ctx.User.Username}#{ctx.User.Discriminator}";
 
             if (!File.Exists(WordPath))
                 File.Create(WordPath);
 
-            File.AppendAllText(WordPath, content);
+            File.AppendAllText(WordPath, content + Environment.NewLine);
         }
 
         public async Task Saying(CommandContext ctx, string Content)
@@ -106,24 +105,46 @@ namespace DiscordBot.Commands
                     return;
 
                 string[] lines = File.ReadAllLines(WordPath);
-                List<string> list = null;
+                List<string> list = new List<string>();
 
                 foreach (string content in lines)
                 {
                     string[] s = content.Split('|');
                     string word = s[0];
-                    string description = s[1];
 
-                    list = new List<string>();
-
-                    if (word == RemoveSpace(content))
+                    if (word == RemoveSpace(Content))
                         list.Add(content);
                 }
 
                 string[] directory = list.ToArray();
+
+                if (directory.Length < 1)
+                {
+                    string[] unknown = { $"`{Content}`?", "모르는 말이예요!", "무슨말인지 잘 모르겠어요", "그게 뭐죠..?" };
+                    await ctx.RespondAsync(unknown[rnd.Next(0, unknown.Length - 1)]);
+                    return;
+                }
+
                 string[] ss = directory[rnd.Next(0, directory.Length - 1)].Split('|');
 
-                await ctx.RespondAsync($"{ss[1]}\n```{ss[2]}님이 알려주셨어요!```");
+                string c = ss[1];
+                if (ss.Length != 3)
+                    c = ss[1]
+                            .Replace("//Username//", ctx.User.Username)
+                            .Replace("//Displayname//", ctx.Member.Username)
+                            .Replace("//Mention//", ctx.User.Mention)
+                            .Replace("//Id//", ctx.User.Id.ToString())
+                            .Replace("//Channelname//", ctx.Channel.Name)
+                            .Replace("//Channelid//", ctx.Channel.Id.ToString())
+                            .Replace("//Channeltopic//", ctx.Channel.Topic)
+                            .Replace("//Guildname//", ctx.Guild.Name)
+                            .Replace("//Guildid//", ctx.Guild.Id.ToString());
+
+                string sss = $"{c}";
+                if (ss.Length == 3)
+                    sss += $"\n```{ss[2]}님이 알려주셨어요!```";
+
+                await ctx.RespondAsync(sss);
             }
         }
     }

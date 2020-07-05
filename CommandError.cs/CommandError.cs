@@ -95,7 +95,8 @@ namespace DiscordBot
                 if (UseSaying)
                 {
                     Say say = new Say();
-                    await say.Saying(e.Context, e.Context.Message.Content.Remove(0, 4));
+                    string content = e.Context.Message.Content.Split("라히야")[1].Trim();
+                    await say.Saying(e.Context, content);
                 }
                 else
                 {

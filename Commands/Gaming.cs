@@ -638,9 +638,9 @@ namespace DiscordBot
                 var msg = await ctx.RespondAsync(embed: dmb.Build());
                 await Task.Delay(1000);
 
-                msg.CreateReactionAsync(emojileft);
-                msg.CreateReactionAsync(emojistop);
-                msg.CreateReactionAsync(emojiright);
+                await msg.CreateReactionAsync(emojileft);
+                await msg.CreateReactionAsync(emojistop);
+                await msg.CreateReactionAsync(emojiright);
 
                 var interactivity = ctx.Client.GetInteractivityModule();
 

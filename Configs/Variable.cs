@@ -184,14 +184,18 @@ namespace DiscordBot
         {
             string s = string.Join(' ', content);
 
-            return s.Where(l =>
+            char[] a = s.Where(l =>
             {
                 if (l == ' ')
                     return false;
                 else
                     return true;
-            }).ToString();
+            }).ToArray();
+
+            return new string(a);
         }
+
+        public static readonly string WordPath = "Data/Words.dat";
 
         /*TODO: 사용자와 정보 비교시 적거나 많은 경우를 따져서 특정 메서드로 따로 받게하기
          * ex) ui.Money < 1 => 돈이 부족해요! 현재 소지금 : {ui.Money} */
