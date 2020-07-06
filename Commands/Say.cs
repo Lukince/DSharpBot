@@ -10,6 +10,8 @@ using System.IO;
 using IronPython.Runtime;
 using System.Collections.Generic;
 using System.Security.Cryptography;
+using System.Linq;
+using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace DiscordBot.Commands
 {
@@ -32,6 +34,19 @@ namespace DiscordBot.Commands
         [Command("단어추가")]
         public async Task WordAdd(CommandContext ctx, string word, params string[] description)
         {
+            string content = string.Join(' ', description);
+            var compair = File.ReadAllLines(WordPath).Where(l => l.Split('|')[1] == content);
+
+            if (compair.Count() > 0)
+            {
+                string c;
+                if (compair.First().Split('|').Length == 2)
+                    c = "이미 개발자에 의해 정의된 설명이예요! 다른 설명을 추가해볼까요?";
+                else
+                    c = compair.First().Split('|')[2] + "님이 먼저 가르쳐 주셨어요! 혹시 또다른 설명이 있나요..?";
+                await ctx.RespondAsync(c); return;
+            }
+
             DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
             {
                 Title = "추가 확인",
@@ -128,7 +143,15 @@ namespace DiscordBot.Commands
                 string[] ss = directory[rnd.Next(0, directory.Length - 1)].Split('|');
 
                 string c = ss[1];
+                if (c.Contains("//Word:"))
+                {
+                    string word = c.Split("//Word:")[1].Split("//")[0];
+                    await Saying(ctx, c.Replace($"//Word:{word}//", word));
+                    return;
+                }
+
                 if (ss.Length != 3)
+                {
                     c = ss[1]
                             .Replace("//Username//", ctx.User.Username)
                             .Replace("//Displayname//", ctx.Member.Username)
@@ -139,6 +162,7 @@ namespace DiscordBot.Commands
                             .Replace("//Channeltopic//", ctx.Channel.Topic)
                             .Replace("//Guildname//", ctx.Guild.Name)
                             .Replace("//Guildid//", ctx.Guild.Id.ToString());
+                }
 
                 string sss = $"{c}";
                 if (ss.Length == 3)
