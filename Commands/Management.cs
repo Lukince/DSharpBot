@@ -1,6 +1,7 @@
 ﻿using ByteSizeLib;
 using DiscordBot.Attributes;
 using DiscordBot.Configs;
+using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
@@ -1021,6 +1022,105 @@ namespace DiscordBot
         {
             File.AppendAllText(WordPath, $"{word}|{string.Join(' ', content)}\n");
             await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
+        }
+
+        private async Task SendEditMessage(DiscordChannel chn, string s, int time, string edited)
+        {
+            var msg = await chn.SendMessageAsync(s);
+            await Task.Delay(1000 * time);
+            await msg.ModifyAsync(edited);
+        }
+
+        private async Task SendDeleteMessage(DiscordChannel chn, string s, int time)
+        {
+            var msg = await chn.SendMessageAsync(s);
+            await Task.Delay(1000 * time);
+            await msg.DeleteAsync();
+        }
+
+        [Command("#ConnectChannel")]
+        public async Task ChatMode(CommandContext ctx, ulong id, bool createchannel = false)
+        {
+            var chn = await ctx.Client.GetChannelAsync(id);
+            var mchn = ctx.Channel;
+            string schn = chn.Name;
+
+            if (createchannel)
+            {
+                mchn = await ctx.Guild.CreateChannelAsync(chn.Name, ChannelType.Text);
+                schn = mchn.Mention;
+            }
+
+            var interactivity = ctx.Client.GetInteractivityModule();
+
+            var tmpmsg = await ctx.RespondAsync("This is Chatmode. All of your message will be send." +
+                                    $"Connected Channel : {schn}");
+
+            while (true)
+            {
+
+                var msg = await interactivity.WaitForMessageAsync(l => l.Author == ctx.User
+                                                    && l.Channel == mchn);
+
+                if (msg != null)
+                {
+                    if (msg.Message.Content == "#Disconnect")
+                        break;
+                    else
+                    {
+                        if (msg.Message.Content.StartsWith("//Channel//"))
+                        {
+                            string s = msg.Message.Content.Split("//Channel//")[1];
+                            chn = await ctx.Client.GetChannelAsync(ulong.Parse(s));
+                            await mchn.ModifyAsync(chn.Name);
+                        }
+                        else if (msg.Message.Content.StartsWith("//Sudo//"))
+                        {
+                            try
+                            {
+                                string s = msg.Message.Content.Split("//Sudo//")[1];
+                                await ctx.CommandsNext.SudoAsync(ctx.User, chn, s);
+                                await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
+                            }
+
+                            catch (Exception e)
+                            {
+                                await chn.SendMessageAsync(e.Message);
+                            }
+                        }
+                        else if (msg.Message.Content.Contains("//Edit:"))
+                        {
+                            string s = msg.Message.Content;
+                            string[] ss = s.Split("//Edit:");
+                            string[] sss = ss[1].Split("//");
+
+                            int time = int.Parse(sss[0]);
+                            string edited = sss[1];
+
+                            await SendEditMessage(chn, ss[0], time, edited);
+                        }
+                        else if (msg.Message.Content.Contains("//Delete:"))
+                        {
+                            string s = msg.Message.Content;
+                            string[] ss = s.Split("//Delete:");
+                            string[] sss = ss[1].Split("//");
+
+                            int time = int.Parse(sss[0]);
+
+                            await SendDeleteMessage(chn, ss[0], time);
+                        }
+                        else
+                            await chn.SendMessageAsync(msg.Message.Content);
+                    }
+                }
+
+
+            }
+
+            if (createchannel)
+                await mchn.DeleteAsync();
+
+            await tmpmsg.ModifyAsync("**Disconnected**");
         }
     }
 }
