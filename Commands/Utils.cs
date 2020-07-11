@@ -1093,11 +1093,14 @@ namespace DiscordBot
                 await ctx.RespondAsync($"Output:\n```{line}```");
 
                 if (File.Exists(file + ".exe"))
+                {
                     await ctx.RespondWithFileAsync(file + ".exe");
+                    File.Delete(file + ".exe");
+                }
                 else
                     await ctx.RespondAsync("Fail to Compile");
 
-                //TODO: 파일 지우는 시스템 작성하기, 더 높은 버전의 csc.exe 파일 찾아보기
+                //TODO: 더 높은 버전의 csc.exe 파일 찾아보기
             }
         }
     }

@@ -30,7 +30,7 @@ namespace DiscordBot
     [BlackList, CheckAdmin]
     class Management
     {
-        [Command("Info")]
+        [Command("Info"), Check]
         public async Task Info(CommandContext ctx, ulong id)
         {
             string Id = $"Account/{id}";
@@ -73,7 +73,7 @@ namespace DiscordBot
             await ctx.Client.GetChannelAsync(channelid).GetAwaiter().GetResult().SendMessageAsync(message);
         }
 
-        [Command("Open")]
+        [Command("Open"), Check]
         public async Task Open(CommandContext ctx, ulong id)
         {
             string Id = $"Account/{id}";
@@ -111,7 +111,7 @@ namespace DiscordBot
             }
         }
 
-        [Command("CubeAdd")]
+        [Command("CubeAdd"), Check]
         public async Task CubeAdd(CommandContext ctx, ulong id, uint cubecount)
         {
             string Id = $"Account/{id}";
@@ -134,7 +134,7 @@ namespace DiscordBot
             }
         }
 
-        [Command("MoneyAdd")]
+        [Command("MoneyAdd"), Check]
         public async Task MoneyAdd(CommandContext ctx, ulong id, ulong moneycount)
         {
             string Id = $"Account/{id}";
@@ -157,7 +157,7 @@ namespace DiscordBot
             }
         }
 
-        [Command("RegistCube")]
+        [Command("RegistCube"), Check]
         public async Task RegistCube(CommandContext ctx, ulong id, uint cubetime)
         {
             string Id = $"Account/{id}";
@@ -181,7 +181,7 @@ namespace DiscordBot
             }
         }
 
-        [Command("ServerList")]
+        [Command("ServerList"), Check]
         public async Task ServerList(CommandContext ctx)
         {
             string msg = string.Empty;
@@ -249,7 +249,7 @@ namespace DiscordBot
             await ctx.RespondAsync($"{Directory.GetFiles(IdLocation).Length} Users");
         }
 
-        [Command("GetRoles")]
+        [Command("GetRoles"), Check]
         public async Task GetRoles(CommandContext ctx)
         {
             DiscordEmbedBuilder dmb = new DiscordEmbedBuilder();
@@ -278,7 +278,7 @@ namespace DiscordBot
             await ctx.Member.SendMessageAsync(embed: dmb.Build());
         }
 
-        [Command("ResetReward")]
+        [Command("ResetReward"), Check]
         public async Task ResetReward(CommandContext ctx, ulong id = 378535260754935819)
         {
             string Id = $"Account/{id}";
@@ -301,7 +301,7 @@ namespace DiscordBot
             }
         }
 
-        [Command("BlackList")]
+        [Command("BlackList"), Check]
         public async Task BList(CommandContext ctx, string option, ulong id = 0)
         {
             string BlacklistPath = "Data/Blacklist.txt";
@@ -337,7 +337,7 @@ namespace DiscordBot
             }
         }
 
-        [Command("Files")]
+        [Command("Files"), Check]
         public async Task GetFiles(CommandContext ctx)
         {
             DiscordEmbedBuilder dmb = new DiscordEmbedBuilder
@@ -500,7 +500,7 @@ namespace DiscordBot
             }
         }
 
-        [Command("Commands")]
+        [Command("Commands"), Check]
         public async Task GetCommand(CommandContext ctx, params string[] option)
         {
             CheckBaseAttribute checkadmin = new CheckAdminAttribute();
@@ -623,7 +623,7 @@ namespace DiscordBot
             await ctx.RespondAsync(embed: dmb.Build());
         }
 
-        [Command("GetAll")]
+        [Command("GetAll"), Check]
         public async Task GetAllUsernGuilds(CommandContext ctx)
         {
             var guilds = ctx.Client.Guilds;
@@ -922,7 +922,7 @@ namespace DiscordBot
         }
 
         [Group("Memo")]
-        [BlackList, CheckAdmin]
+        [BlackList, CheckAdmin, Check]
         class Memo
         {
             readonly string memofile = "Data/Memo.txt";
@@ -1017,7 +1017,7 @@ namespace DiscordBot
             await ctx.RespondAsync(ctx.Message.Content.Remove(0, 4));
         }
 
-        [Command("AddWord")]
+        [Command("AddWord"), Check]
         public async Task AddWords(CommandContext ctx, string word, params string[] content)
         {
             File.AppendAllText(WordPath, $"{word}|{string.Join(' ', content)}\n");
@@ -1113,8 +1113,6 @@ namespace DiscordBot
                             await chn.SendMessageAsync(msg.Message.Content);
                     }
                 }
-
-
             }
 
             if (createchannel)
