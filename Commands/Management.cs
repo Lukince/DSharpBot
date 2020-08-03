@@ -702,7 +702,7 @@ namespace DiscordBot
                     size += File.ReadAllBytes(path).Length;
                     string[] p = Path.GetFullPath(path).Split('\\');
                     string location;
-                    if (path.EndsWith("Index.cs"))
+                    if (path.EndsWith("Index.cs") || path.EndsWith("CommandError.cs"))
                     {
                         location = Path.GetFileName(path);
                     }
