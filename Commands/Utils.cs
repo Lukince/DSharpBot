@@ -15,6 +15,7 @@ using MoreExtension;
 using Newtonsoft.Json;
 using QRCoder;
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
@@ -406,18 +407,56 @@ namespace DiscordBot
                     ThumbnailUrl = user.AvatarUrl
                 };
 
-                TransportGame usergame = user.Presence.Game;
-                DiscordMember member = ctx.Guild.GetMemberAsync(user.Id).GetAwaiter().GetResult();
+                TransportGame usergame = user.Presence.Game ?? null;
+                DiscordMember member = ctx.Guild.GetMemberAsync(UserId).GetAwaiter().GetResult();
+
+                DiscordEmoji[] StatusEmoji = {
+                    DiscordEmoji.FromGuildEmote(ctx.Client, 732242761717121074), //online
+        			DiscordEmoji.FromGuildEmote(ctx.Client, 732242745309265972), //idle
+        			DiscordEmoji.FromGuildEmote(ctx.Client, 732242728796160011), //dnd
+        			DiscordEmoji.FromGuildEmote(ctx.Client, 732242947814457354)  //offline
+        		};
+
+
+                string roles = null;
+                if (member.Roles.Count() > 0)
+                {
+                    roles = string.Empty;
+                    foreach (var role in member.Roles)
+                    {
+                        if (role.Name.Contains("everyone"))
+                            continue;
+                        roles += $"{role.Mention} ";
+                    }
+                }
+
+
+                string status;
+                if (user.Presence.Status == UserStatus.Online)
+                    status = $"{StatusEmoji[0]} Online";
+                else if (user.Presence.Status == UserStatus.Idle)
+                    status = $"{StatusEmoji[1]} Idle";
+                else if (user.Presence.Status == UserStatus.DoNotDisturb)
+                    status = $"{StatusEmoji[2]} DoNotDisturb";
+                else if (user.Presence.Status == UserStatus.Offline)
+                    status = $"{StatusEmoji[3]} Offline";
+                else
+                    status = $"{StatusEmoji[3]} Invisible";
 
                 dmb.AddField("이름", user.Username);
                 dmb.AddField("아이디", user.Id.ToString());
                 dmb.AddField("태그", $"{user.Username}#{user.Discriminator}");
-                dmb.AddField("상태", user.Presence.Status.ToString());
-                dmb.AddField("게임", $"이름 : {usergame.Name}\n" +
-                    $"내용 : {usergame.Details}\n");
+                dmb.AddField("상태", status);
+                if (usergame != null)
+                    dmb.AddField("게임", $"이름 : {((usergame.Name == "Custom Status") ? usergame.State : usergame.Name)}\n" +
+                        $"내용 : " + (string.IsNullOrEmpty(usergame.Details) ? "None" : usergame.Details) + "\n");
                 //$"시간 : {DateTime.Now.Subtract(usergame.Timestamps.Start.Value.DateTime)}");
-                dmb.AddField("길드 가입일", member.JoinedAt.ToString());
-                //dmb.AddField("디스코드 가입일", user.CreatedAt);
+                dmb.AddField("길드 가입일", member.JoinedAt.DateTime.ToString());
+                dmb.AddField("디스코드 가입일", user.CreationTimestamp.DateTime.ToString());
+                dmb.AddField("역할", string.IsNullOrEmpty(roles) ? "None" : roles);
+                if (usergame != null)
+                    if (usergame.StreamType == GameStreamType.Twitch)
+                        dmb.AddField("방송중", $"{(string.IsNullOrEmpty(usergame.Url) ? "KnownUrl" : usergame.Url)}");
 
                 return dmb;
             }
@@ -1102,6 +1141,157 @@ namespace DiscordBot
 
                 //TODO: 더 높은 버전의 csc.exe 파일 찾아보기
             }
+        }
+
+        [Command("소인수분해")]
+        public async Task GetPrimeFactorization(CommandContext ctx, long number)
+        {
+            if (number < 1)
+                throw new ArgumentException("수는 0보다 커야해요!");
+
+            var msg = await ctx.RespondAsync(embed: new DiscordEmbedBuilder()
+            {
+                Title = "계산중...",
+                Color = DiscordColor.Green
+            }.Build());
+
+            Dictionary<long, int> PrimeList = new Dictionary<long, int>();
+
+            long n = number;
+            while (n > 1)
+            {
+                long divisionNumber = 1;
+
+                for (long i = 2; i <= n; i++)
+                {
+                    if (n % i == 0)
+                    {
+                        divisionNumber = i;
+
+                        if (PrimeList.ContainsKey(i))
+                            PrimeList[i] += 1;
+                        else
+                            PrimeList.Add(i, 1);
+                        break;
+                    }
+                }
+
+                n /= divisionNumber;
+            }
+
+            string ResultString = string.Empty;
+
+            foreach (var result in PrimeList)
+            {
+                if (result.Value == 1)
+                    ResultString += $"{result.Key}";
+                else
+                    ResultString += $"{result.Key}{GetPowString(result.Value)}";
+
+                if (!result.Equals(PrimeList.Last()))
+                    ResultString += " × ";
+            }
+
+            await msg.ModifyAsync(embed: new DiscordEmbedBuilder
+            {
+                Title = ResultString,
+                Color = DiscordColor.Green
+            }.Build());
+        }
+
+        private long[] GetDivisorFunc(long n)
+        {
+            long number = n;
+            List<long> list = new List<long>();
+
+            for (long i = 1; i <= number; i++)
+            {
+                if (number == i)
+                {
+                    list.Add(i);
+                    break;
+                }
+                if (number % i == 0)
+                    list.Add(i);
+            }
+
+            return list.ToArray();
+        }
+
+        private int[] GetDivisorFunc(int n)
+        {
+            int number = n;
+            List<int> list = new List<int>();
+
+            for (int i = 1; i <= number; i++)
+            {
+                if (number == i)
+                {
+                    list.Add(i);
+                    break;
+                }
+                if (number % i == 0)
+                    list.Add(i);
+            }
+
+            return list.ToArray();
+        }
+
+        [Command("약수")]
+        public async Task GetDivisor(CommandContext ctx, long n)
+        {
+            if (n < 1)
+                throw new ArgumentException("수는 0보다 커야해요!");
+
+            var msg = await ctx.RespondAsync(embed: new DiscordEmbedBuilder()
+            {
+                Title = "계산중...",
+                Color = DiscordColor.Green
+            }.Build());
+
+            List<string> list = new List<string>();
+            foreach (long l in GetDivisorFunc(n))
+                list.Add(l.ToString());
+            string output = string.Join(", ", list.ToArray());
+
+            await msg.ModifyAsync(embed: new DiscordEmbedBuilder
+            {
+                Title = output,
+                Color = DiscordColor.Green
+            }.Build());
+        }
+
+        [Command("소수")]
+        public async Task GetPrime(CommandContext ctx, long number)
+        {
+            if (number < 1)
+                throw new ArgumentException("수는 0보다 커야해요!");
+
+            var msg = await ctx.RespondAsync(embed: new DiscordEmbedBuilder()
+            {
+                Title = "계산중...",
+                Color = DiscordColor.Green
+            }.Build());
+
+            long n = number;
+            do
+            {
+                long j = 2;
+                while (n % j != 0)
+                    j++;
+                if (n == j)
+                {
+                    await msg.ModifyAsync(embed: new DiscordEmbedBuilder
+                    {
+                        Title = $"{number} 다음으로 가까운 소수",
+                        Color = DiscordColor.Green
+                    }.AddField("result", $"```{j}```")
+                    .Build());
+                    return;
+                }
+
+                n++;
+            } while (true);
         }
     }
 }

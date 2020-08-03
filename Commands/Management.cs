@@ -1,4 +1,5 @@
 ﻿using ByteSizeLib;
+using DecimalConverter;
 using DiscordBot.Attributes;
 using DiscordBot.Configs;
 using DSharpPlus;
@@ -14,6 +15,7 @@ using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Scripting.Hosting;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -24,6 +26,7 @@ using static DiscordBot.Account;
 using static DiscordBot.Index;
 using static DiscordBot.Utils;
 using static DiscordBot.Variable;
+using static DSharpPlus.Entities.DiscordEmbedBuilder;
 
 namespace DiscordBot
 {
@@ -423,7 +426,7 @@ namespace DiscordBot
         {
             string text = string.Join(" ", content);
 
-            id.Send(ctx, text);
+            SendDM(ctx, id, text);
             await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
         }
 
@@ -513,7 +516,7 @@ namespace DiscordBot
             DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
             {
                 Title = "Commands",
-                Color = RandomColor[rnd.Next(0, RandomColor.Length - 1)],
+                Color = GetRandomColor(),
                 Timestamp = DateTime.Now,
                 Footer = GetFooter(ctx)
             };
@@ -872,6 +875,47 @@ namespace DiscordBot
                     return;
                 }
 
+                DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
+                {
+                    Title = "관리자 승인",
+                    Description = "관리자로 부터 관리자 권한에 대한 승인 요청이 왔습니다.",
+                    Footer = new EmbedFooter()
+                    {
+                        IconUrl = ctx.Client.CurrentApplication.Owner.AvatarUrl,
+                        Text = $"Request by {ctx.Client.CurrentApplication.Owner.Username}#{ctx.Client.CurrentApplication.Owner.Discriminator}"
+                    },
+                    Timestamp = DateTime.Now
+                };
+
+                dmb.AddField("관리자 방침", "1. 관리자는 라히봇을 관리하며 내부 데이터 - 큐브시스템, 서버리스트 - 에 대해서 접근할 수 있는 권한이 있다.\n" +
+                    "2. 관리자는 블랙리스트, 버그나 오류로 인한 데이터 수정등을 처리하는 일을 담당한다.\n" +
+                    "3. 관리자의 권력행사나 이유 없는 수정등의 행동으로 인해 관리자 권한이 박탈 당할 수 있다.\n" +
+                    "4. 관리자는 어드민 명령어중 일부 명령어만 사용할 수 있다. [AdminCommands]로 확인할 수 있다.\n" +
+                    "위 사항에 동의하고 방침을 지키겠다면 아래의 체크 버튼을 눌러서 관리자가 될 수 있다.");
+
+                DiscordEmoji Correct = DiscordEmoji.FromGuildEmote(ctx.Client, GetEmoji("Correct"));
+                DiscordEmoji NotCorrect = DiscordEmoji.FromGuildEmote(ctx.Client, GetEmoji("NotCorrect"));
+
+                CommandExtensions extensions = new CommandExtensions();
+
+                var msg = await extensions.SendDM(ctx, id, embed: dmb.Build());
+                await msg.CreateReactionAsync(Correct);
+                await msg.CreateReactionAsync(NotCorrect);
+                await Task.Delay(1000);
+
+                var interactivity = ctx.Client.GetInteractivityModule();
+                var reaction = await interactivity.WaitForReactionAsync(x => x.Id == Correct.Id || x.Id == NotCorrect.Id, ctx.User);
+
+                if (reaction != null)
+                {
+                    if (reaction.Emoji == NotCorrect)
+                    {
+                        await extensions.SendDM(ctx, id, "확인했어요. 싫으시다면 제가 강요할 필요는 없는거니깐요.");
+                        return;
+                    }
+                }
+
+                await extensions.SendDM(ctx, id, "새 관리자가 되신걸 축하해요! 앞으로 잘 부탁한다구요! :wink:");
                 File.AppendAllText(AdminId, $"{id}\n");
                 await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
             }
@@ -1020,7 +1064,7 @@ namespace DiscordBot
         [Command("AddWord"), Check]
         public async Task AddWords(CommandContext ctx, string word, params string[] content)
         {
-            File.AppendAllText(WordPath, $"{word}|{string.Join(' ', content)}\n");
+            File.AppendAllText(WordPath, $"{word}|{string.Join(' ', content)}|Admin\n");
             await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
         }
 
@@ -1119,6 +1163,97 @@ namespace DiscordBot
                 await mchn.DeleteAsync();
 
             await tmpmsg.ModifyAsync("**Disconnected**");
+        }
+
+        [Command("GetServerInfo")]
+        public async Task GetServerInfo(CommandContext ctx, ulong guildId)
+        {
+            var Guild = await ctx.Client.GetGuildAsync(guildId);
+
+            DiscordEmoji[] StatusEmoji = {
+                DiscordEmoji.FromGuildEmote(ctx.Client, 732242761717121074), //online
+        		DiscordEmoji.FromGuildEmote(ctx.Client, 732242745309265972), //idle
+        		DiscordEmoji.FromGuildEmote(ctx.Client, 732242728796160011), //dnd
+        		DiscordEmoji.FromGuildEmote(ctx.Client, 732242947814457354)  //offline
+        	};
+
+            DiscordMember[] GuildMembers = (await Guild.GetAllMembersAsync()).ToArray();
+
+            /*
+        	int[] UserCount = {
+        		GuildMembers.Where(l => l.Presence.Status == UserStatus.Online).Count(),
+        		GuildMembers.Where(l => l.Presence.Status == UserStatus.Idle).Count(),
+        		GuildMembers.Where(l => l.Presence.Status == UserStatus.DoNotDisturb).Count(),
+        		GuildMembers.Where(l => l.Presence.Status == UserStatus.Offline).Count()
+        	};
+        	
+        	string description = string.Empty;
+        	for (int i = 0; i < 4; i++)
+        		description += $"{StatusEmoji[i]}-{UserCount[i]}";
+        	*/
+
+            DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
+            {
+                Title = $"{Guild.Name} - {Guild.Id}",
+                //Description = description,
+                Footer = GetFooter(ctx),
+                Timestamp = DateTime.Now,
+                ThumbnailUrl = Guild.IconUrl
+            };
+
+            await ctx.RespondAsync(embed: dmb.Build());
+        }
+
+        [Command("RandomTest")]
+        public async Task Random(CommandContext ctx, params string[] value)
+        {
+            int total = 0;
+            List<int> percent = new List<int>();
+
+            foreach (string i in value)
+            {
+                int j = int.Parse(i);
+                total += j;
+                percent.Add(j);
+            }
+
+            string result = GetRandom(percent.ToArray(), value);
+            double k = double.Parse(result);
+            double output = (k / Convert.ToDouble(total));
+
+            Console.WriteLine($"{k} {result} {total} {output} {output * 100}");
+
+            await ctx.RespondAsync($"{output * 100}%");
+        }
+
+        [Command("MaskedUrl")]
+        public async Task MakeMaskedUrl(CommandContext ctx, string content, string url, string option = "")
+        {
+            string MaskedUrl = Formatter.MaskedUrl(content, new Uri(url), option);
+            var dmb = new DiscordEmbedBuilder();
+            dmb.AddField(content, MaskedUrl);
+            await ctx.RespondAsync(embed: dmb.Build());
+        }
+
+        [Command("AdminCommands"), Check]
+        public async Task AdminCommands(CommandContext ctx)
+        {
+            var commands = ctx.CommandsNext.RegisteredCommands;
+            CheckBaseAttribute Check = new CheckAttribute();
+            string StringCommands = string.Empty;
+
+            DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
+            {
+                Title = "Commands",
+                Color = GetRandomColor(),
+                Timestamp = DateTime.Now,
+                Footer = GetFooter(ctx)
+            };
+
+            foreach (var c in commands.Where(l => l.Value.ExecutionChecks.Contains(Check)))
+                StringCommands += $"`{c.Key}` ";
+
+            await ctx.RespondAsync(embed: dmb.AddField("Management Command List", StringCommands).Build());
         }
     }
 }

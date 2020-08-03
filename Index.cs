@@ -125,6 +125,7 @@ namespace DiscordBot
             commands.RegisterCommands<HelpCommand>();
             commands.RegisterCommands<VoiceCommand>();
             commands.RegisterCommands<Moderator>();
+            commands.RegisterCommands<RainbowSix>();
 
             await discord.ConnectAsync();
             await Task.Delay(-1);

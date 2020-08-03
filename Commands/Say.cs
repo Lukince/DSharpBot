@@ -40,7 +40,7 @@ namespace DiscordBot.Commands
             if (compair.Count() > 0)
             {
                 string c;
-                if (compair.First().Split('|').Length == 2)
+                if (compair.First().Split('|')[3] == "Admin")
                     c = "이미 개발자에 의해 정의된 설명이예요! 다른 설명을 추가해볼까요?";
                 else
                     c = compair.First().Split('|')[2] + "님이 먼저 가르쳐 주셨어요! 혹시 또다른 설명이 있나요..?";
@@ -150,7 +150,7 @@ namespace DiscordBot.Commands
                     return;
                 }
 
-                if (ss.Length != 3)
+                if (ss[2] == "Admin")
                 {
                     c = ss[1]
                             .Replace("//Username//", ctx.User.Username)
@@ -165,7 +165,7 @@ namespace DiscordBot.Commands
                 }
 
                 string sss = $"{c}";
-                if (ss.Length == 3)
+                if (ss[2] != "Admin")
                     sss += $"\n```{ss[2]}님이 알려주셨어요!```";
 
                 await ctx.RespondAsync(sss);

@@ -32,7 +32,7 @@ namespace DiscordBot.Attributes
 
             StringCommandlist = list.ToArray();
 
-            if (!StringCommandlist.Contains(ctx.Command.Name))
+            if (!StringCommandlist.Contains(ctx.Command.Name) && GetAdminIds().Contains(ctx.User.Id))
             {
                 ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":x:"));
                 ctx.RespondAsync("해당 명령어는 최고관리자 전용이에요");

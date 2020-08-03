@@ -7,7 +7,11 @@ using DSharpPlus.Entities;
 using DSharpPlus.Interactivity;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using static DiscordBot.Account;
 using static DiscordBot.Utils;
@@ -734,6 +738,108 @@ namespace DiscordBot
                 return s;
 
             }
+        }
+
+        [Command("몬스터"), DoNotUse]
+        [SuppressMessage("Style", "IDE0059:불필요한 값 할당", Justification = "<보류 중>")]
+        public async Task MonsterGame(CommandContext ctx)
+        {
+            // Main Variables
+            DiscordUser GameUser = ctx.User;
+            string ResourceFolder = "GameResource/";
+            DiscordEmbedBuilder GameEmbed = new DiscordEmbedBuilder() { Color = GetRandomColor() };
+
+            // Game Variables
+            int Round;
+            int[] HealthList = { 100 }; // TODO: Set each round boss's hp
+            float CurrentHealth = HealthList[0];
+            int LeftBallCount;
+            int PreviousBallIndex;
+
+            /* 
+             * Each Ball's Ablity
+             * 
+             * CommonBall => Sometimes damaged 2x
+             * FireBall => At next turn it damaged more. ex) 1.5x damage
+             * MagicBall => Add one more ball
+             * PoisonBall => Each turn it damage little
+             * BlackBall => Different damage according to previous Ball
+            */
+
+            // Make Images
+            Image Monster = Image.FromFile($"{ResourceFolder}Monster.png");
+            Image CommonBall = Image.FromFile($"{ResourceFolder}CommonBall");
+            Image FireBall = Image.FromFile($"{ResourceFolder}FireBall");
+            Image PosionBall = Image.FromFile($"{ResourceFolder}PoisonBall");
+            Image MagicBall = Image.FromFile($"{ResourceFolder}MagicBall");
+            Image BlackBall = Image.FromFile($"{ResourceFolder}BlackBall");
+
+            // Make DiscordEmoji
+            DiscordEmoji ECommonBall = DiscordEmoji.FromGuildEmote(ctx.Client, 739392980984791081);
+            DiscordEmoji EFireBall = DiscordEmoji.FromGuildEmote(ctx.Client, 739392980976402524);
+            DiscordEmoji EPosionBall = DiscordEmoji.FromGuildEmote(ctx.Client, 739392980904837130);
+            DiscordEmoji EMagicBall = DiscordEmoji.FromGuildEmote(ctx.Client, 739392980745715793);
+            DiscordEmoji EBlackBall = DiscordEmoji.FromGuildEmote(ctx.Client, 739392980494057485);
+
+            // Setting Array Variables
+            //TODO : Set Damage each balls
+            Tuple<DiscordEmoji, Image,float>[] BallsArray = new List<Tuple<DiscordEmoji, Image, float>>()
+            {
+                new Tuple<DiscordEmoji, Image, float>(ECommonBall, CommonBall, 0),
+                new Tuple<DiscordEmoji, Image, float>(EFireBall, FireBall, 0),
+                new Tuple<DiscordEmoji, Image, float>(EPosionBall, PosionBall, 0),
+                new Tuple<DiscordEmoji, Image, float>(EMagicBall, MagicBall, 0),
+                new Tuple<DiscordEmoji, Image, float>(EBlackBall, BlackBall, 0)
+            }.ToArray();
+            DiscordEmoji[] EBallsArray = { ECommonBall, EFireBall, EPosionBall, EMagicBall, EBlackBall };
+
+            // Default Setting
+            GameEmbed.WithImageUrl($"{ResourceFolder}Monster.png");
+            GameEmbed.WithTitle($"{CurrentHealth}/{HealthList[0]}");
+            Round = 0;
+            LeftBallCount = 4;
+            PreviousBallIndex = -1;
+
+            //GameStart
+
+            /* <TODO LIST>
+             * 
+             * Gaming: 1. 기본 틀 제작하기
+             * Gaming: 2. 공 랜덤으로 고르는 옵션 제작하기
+             * Gaming: 3. 공이 모두 소진되거나 hp가 없을때 제작하기
+            */
+
+            var Gaming = await ctx.RespondAsync(embed: GameEmbed.Build()); //Main Game Squence
+            while (true)
+            {
+                DiscordEmoji[] RandomEmojis = await RandomReactionCreate(message: Gaming, emojis: EBallsArray);
+                var interactivity = ctx.Client.GetInteractivityModule();
+                var reactions = await interactivity.WaitForReactionAsync(l =>
+                        RandomEmojis.Contains(l), GameUser, TimeSpan.FromSeconds(30));
+
+                if (reactions != null)
+                {
+                    float damage = DamageCalculate(reactions.Emoji, EBallsArray);
+                }
+
+            }
+        }
+
+        private async Task<DiscordEmoji[]> RandomReactionCreate(DiscordMessage message, DiscordEmoji[] emojis)
+        {
+            List<DiscordEmoji> selectedEmoji = new List<DiscordEmoji>();
+            for (int i = 0; i < 3; i++)
+            {
+                selectedEmoji.Add(emojis[rnd.Next(0, emojis.Length - 1)]);
+                await message.CreateReactionAsync(selectedEmoji.Last());
+            }
+
+            return selectedEmoji.ToArray();
+        }
+
+        private float DamageCalculate(DiscordEmoji Ball, DiscordEmoji[] BallArray)
+        {
+            // WorkFirst: Make Damage Calculate
         }
     }
 }

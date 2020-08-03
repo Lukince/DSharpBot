@@ -100,11 +100,16 @@ namespace DiscordBot
                     if (string.IsNullOrEmpty(RemoveSpace(content)))
                     {
                         Variable v = new Variable();
-                        v.CallName(e.Context.Message);
+                        await v.CallName(e.Context.Message);
                     }
                     else
-                        await say.Saying(e.Context, content);
-
+                    {
+                        try
+                        {
+                            await say.Saying(e.Context, content);
+                        }
+                        catch (Exception err) { Console.WriteLine(err.ToString()); }
+                    }
                     //TODO: 같은 설명의 단어는 추가 건너뛰기
                 }
                 else

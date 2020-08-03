@@ -18,6 +18,8 @@ namespace DiscordBot
 {
     class Variable
     {
+        private static Random rnd = new Random();
+
         public static class Urls
         {
             public static string Papago { get; } = "http://blogfiles.naver.net/MjAxNzAxMjVfMjY0/MDAxNDg1MzU1NTY1NTA0.LUHh0-RMYj4x21WjrObA2Ga_WXxQhyYmKZc73qP4rrcg.TfNQRp2SY_dAWQehsRc_i18-zPyGoMnDluGxll4fJCIg.PNG.thankhawaii/%BD%BA%C5%A9%B8%B0%BC%A6_2017-01-25_%BF%C0%C0%FC_9.16.58.png";
@@ -108,6 +110,11 @@ namespace DiscordBot
 
         public const int MaxPage = 5;
 
+        /// <summary>
+        /// 어드민 아이디를 얻는 명령어
+        /// </summary>
+        /// 
+        /// <returns>Return AdminIds (ulong[])</returns>
         public static ulong[] GetAdminIds()
         {
             List<ulong> list = new List<ulong>();
@@ -206,7 +213,112 @@ namespace DiscordBot
             await msg.RespondAsync("네? 저 부르셨나요?");
         }
 
+        public static string GetRandom(int[] percent, string[] value)
+        {
+            if (percent.Length < 1 || value.Length < 1)
+                throw new ArgumentException("Argument cannot be null");
+
+            if (percent.Length != value.Length)
+                throw new ArgumentException("percent array's length and value array's length must be equal");
+
+            foreach (int i in percent)
+            {
+                if (i <= 0)
+                    throw new ArgumentException("percent value must be positive number");
+            }
+
+            int total = 0;
+            foreach (int i in percent)
+                total += i;
+
+            List<int> keylist = new List<int>();
+            for (int i = 0; i < percent.Length; i++)
+            {
+                int k = 0;
+                for (int j = 0; j < i + 1; j++)
+                    k += percent[j];
+                keylist.Add(k);
+            }
+            int[] key = keylist.ToArray();
+
+            Random rnd = new Random();
+
+            int result = rnd.Next(0, total);
+
+            for (int i = 0; i < percent.Length; i++)
+            {
+                if (i == 0)
+                {
+                    if (0 <= result && result <= key[i])
+                        return value[i];
+                }
+                else
+                {
+                    if (key[i - 1] <= result && result <= key[i])
+                        return value[i];
+                }
+            }
+
+            return string.Empty;
+        }
+
+        public static int BitcoinPrice = 0;
+
+        public static string RemoveSpace(string content)
+        {
+            return new string(content.Where(c => c != ' ').ToArray());
+        }
+
+        public static int EvalInequalityCount(string expression)
+        {
+            string content = RemoveSpace(expression);
+            return 0;
+            //TODO: 부등호 기준으로 나누기;
+        }
+
+        public static int[] intToArray(int num)
+        {
+            string s = num.ToString();
+            List<int> list = new List<int>();
+            foreach (char c in s.ToCharArray())
+            {
+                Console.Write(c.ToString() + " ");
+                list.Add(int.Parse(c.ToString()));
+            }
+            return list.ToArray();
+        }
+
+        public static string[] pownumber =
+        {
+            "⁰",
+            "¹",
+            "²",
+            "³",
+            "⁴",
+            "⁵",
+            "⁶",
+            "⁷",
+            "⁸",
+            "⁹"
+        };
+
+        public static string GetPowString(int number)
+        {
+            int[] numarr = intToArray(number);
+
+            string output = string.Empty;
+            foreach (int i in numarr)
+            {
+                output += pownumber[i];
+            }
+
+            return output;
+        }
+
         /*TODO: 사용자와 정보 비교시 적거나 많은 경우를 따져서 특정 메서드로 따로 받게하기
          * ex) ui.Money < 1 => 돈이 부족해요! 현재 소지금 : {ui.Money} */
+
+        public static DiscordColor GetRandomColor() =>
+            new DiscordColor(rnd.Next(0, 16777215));
     }
 }
