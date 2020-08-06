@@ -840,6 +840,7 @@ namespace DiscordBot
         private float DamageCalculate(DiscordEmoji Ball, DiscordEmoji[] BallArray)
         {
             // WorkFirst: Make Damage Calculate
+            return 0;
         }
     }
 }

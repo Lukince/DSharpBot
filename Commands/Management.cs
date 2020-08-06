@@ -1064,7 +1064,19 @@ namespace DiscordBot
         [Command("AddWord"), Check]
         public async Task AddWords(CommandContext ctx, string word, params string[] content)
         {
-            File.AppendAllText(WordPath, $"{word}|{string.Join(' ', content)}|Admin\n");
+            string s;
+            string w;
+            if (word.EndsWith("//Lock//"))
+            {
+                w = word.DeleteString("//Lock//");
+                s = "Lock";
+            }
+            else
+            {
+                w = word;
+                s = "Unlock";
+            }
+            File.AppendAllText(WordPath, $"{w}|{string.Join(' ', content)}|Admin|{s}\n");
             await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
         }
 

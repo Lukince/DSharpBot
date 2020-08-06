@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Linq;
 using Microsoft.CodeAnalysis.Diagnostics;
+using System.Net;
 
 namespace DiscordBot.Commands
 {
@@ -37,10 +38,16 @@ namespace DiscordBot.Commands
             string content = string.Join(' ', description);
             var compair = File.ReadAllLines(WordPath).Where(l => l.Split('|')[1] == content);
 
+            if (File.ReadAllLines(WordPath).Where(l => l.Split('|')[0] == word).First().Split('|')[3] == "Lock")
+            {
+                await ctx.RespondAsync("해당 단어는 설명을 추가하거나 변경할수 없어요!");
+                return;
+            }
+
             if (compair.Count() > 0)
             {
                 string c;
-                if (compair.First().Split('|')[3] == "Admin")
+                if (compair.First().Split('|')[2] == "Admin")
                     c = "이미 개발자에 의해 정의된 설명이예요! 다른 설명을 추가해볼까요?";
                 else
                     c = compair.First().Split('|')[2] + "님이 먼저 가르쳐 주셨어요! 혹시 또다른 설명이 있나요..?";
@@ -169,6 +176,34 @@ namespace DiscordBot.Commands
                     sss += $"\n```{ss[2]}님이 알려주셨어요!```";
 
                 await ctx.RespondAsync(sss);
+            }
+        }
+
+        [Group("DataBase"), CheckAdmin, BlackList]
+        public class DataBase
+        {
+            [Command("Load")]
+            public async Task LoadDataBase(CommandContext ctx)
+            {
+                await ctx.RespondWithFileAsync(WordPath);
+            }
+
+            [Command("Clear")]
+            public async Task ClearDataBase(CommandContext ctx)
+            {
+                File.Delete(WordPath);
+                File.Create(WordPath);
+                await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
+            }
+
+            [Command("Save")]
+            public async Task SaveDataBase(CommandContext ctx)
+            {
+                var file = ctx.Message.Attachments.First();
+                WebClient web = new WebClient();
+                web.DownloadFile(file.Url, "tmp.dat");
+                File.Move("tmp.dat", WordPath, true);
+                await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
             }
         }
     }
