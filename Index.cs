@@ -7,6 +7,7 @@ using DSharpPlus.CommandsNext.Exceptions;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity;
 using DSharpPlus.VoiceNext;
+using Microsoft.VisualBasic;
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -53,6 +54,8 @@ namespace DiscordBot
                 StartDate = $"{date.Year}_{date.Month}_{date.Day};{date.Hour}_{date.Minute}_{date.Second}";
                 discord.DebugLogger.LogMessage(LogLevel.Info, discord.CurrentUser.Username, $"{discord.CurrentUser.Username} is ready!", DateTime.Now);
                 File.WriteAllText($"DebugLog/{StartDate}.txt", $"Bot Start on : {date}");
+                try { EnglishWord.ReloadWords(); }
+                catch (Exception err) { discord.DebugLogger.LogMessage(LogLevel.Error, err.InnerException.ToString(), err.ToString(), DateTime.Now); }
             };
 
             discord.MessageCreated += async e =>
@@ -126,6 +129,7 @@ namespace DiscordBot
             commands.RegisterCommands<VoiceCommand>();
             commands.RegisterCommands<Moderator>();
             commands.RegisterCommands<RainbowSix>();
+            commands.RegisterCommands<EnglishWord>();
 
             await discord.ConnectAsync();
             await Task.Delay(-1);

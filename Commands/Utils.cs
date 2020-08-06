@@ -197,7 +197,7 @@ namespace DiscordBot
                     break;
             } while (true);
 
-            DiscordEmbedBuilder.EmbedFooter footer = GetFooter(ctx);
+            EmbedFooter footer = GetFooter(ctx);
             footer.Text = $"Vote id = {voteid}";
 
             DiscordEmbedBuilder dmb = new DiscordEmbedBuilder
@@ -211,10 +211,10 @@ namespace DiscordBot
             await msg.CreateReactionAsync(DiscordEmoji.FromGuildEmote(ctx.Client, 617684865529282570));
             await msg.CreateReactionAsync(DiscordEmoji.FromGuildEmote(ctx.Client, 617684780691095555));
 
-            File.AppendAllText(votefile, $"{voteid}|{ctx.User.Id}|{ctx.Channel.Id}|{msg.Id}");
+            File.AppendAllText(votefile, $"{voteid}|{ctx.User.Id}|{ctx.Channel.Id}|{msg.Id}\n");
         }
 
-        [Command("투표종료")]
+        [Command("투표종료"), DoNotUse]
         public async Task EndVote(CommandContext ctx, int iid)
         {
             ulong id = Convert.ToUInt64(iid);
