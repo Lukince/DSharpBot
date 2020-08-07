@@ -86,7 +86,8 @@ namespace DiscordBot
             }
             else
             {
-                File.AppendAllText($"Suggestion/{ctx.User.Id}", $"\n{DateTime.Now} : {suggest}");
+                Variable v = new Variable();
+                await v.SendWebhook(ctx, BugReport, "추가 사항", suggest);
 
                 await ctx.RespondAsync("확인했어요! 개발자에게 전달해줄께요!");
             }
@@ -101,18 +102,7 @@ namespace DiscordBot
 
             TimeSpan subtime = DateTime.Now.Subtract(ui.RegDate);
 
-            string date = string.Empty;
-
-            if (subtime.Days != 0)
-                date += $"{subtime.Days}일 ";
-
-            if (subtime.Hours != 0)
-                date += $"{subtime.Hours}시간 ";
-
-            if (subtime.Minutes != 0)
-                date += $"{subtime.Minutes}분 ";
-
-            date += $"{subtime.Seconds}초";
+            string date = GetDate(subtime);
 
             await ctx.RespondAsync($"{ctx.User.Username}님과 함께한 시간이 벌써 {date} 이나 됬어요!");
         }

@@ -4,6 +4,7 @@ using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity;
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using static DiscordBot.Utils;
 using static DiscordBot.Variable;
@@ -259,6 +260,12 @@ namespace DiscordBot.Commands
                 "온도간의 변환을 해줘요! 단위는 ˚C(섭씨) ˚F(화씨) ˚K(절대온도) 가 있어요!");
 
             await ctx.RespondAsync(embed: dmb.Build());
+        }
+
+        public async Task EnglishWordHelp(CommandContext ctx)
+        {
+            await ctx.RespondAsync("단어장 사용법\n" +
+                "```라히야 영단어 단어 [단어장 번호] [단어 블라인드 여부(true/false), 기본값 : false]```");
         }
     }
 

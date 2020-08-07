@@ -12,6 +12,7 @@ using DSharpPlus;
 using System.Linq;
 using DiscordBot.Attributes;
 using System.Runtime.InteropServices.ComTypes;
+using Microsoft.Scripting.Actions;
 
 namespace DiscordBot
 {
@@ -75,6 +76,9 @@ namespace DiscordBot
 
                 else if (e.Command.Name == "RunException")
                     await e.Context.RespondAsync(e.Exception.ToString());
+
+                else if (e.Exception is ArgumentException && e.Command.Name == "단어")
+                    await help.EnglishWordHelp(e.Context);
 
                 else
                 {

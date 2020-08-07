@@ -362,20 +362,13 @@ namespace DiscordBot
 
                 string s = string.Empty;
 
-                foreach (string filepath in Directory.GetFiles(directorypath))
+                foreach (string filepath in Directory.GetFiles(directorypath).Where(l => l.EndsWith(".cs")))
                     s += $"{DiscordEmoji.FromGuildEmote(ctx.Client, 715420547005284372)} {Path.GetFileName(filepath)}\n";
 
                 dmb.AddField($"{DiscordEmoji.FromGuildEmote(ctx.Client, 715420547038838815)} {Path.GetFullPath(directorypath).Split('\\')[5]}\n", s);
             }
 
             await ctx.RespondAsync(embed: dmb.Build());
-        }
-
-        [Command("SendBug")]
-        public async Task SendBug(CommandContext ctx, params string[] content)
-        {
-            //BugReport(ctx);
-            await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
         }
 
         [Command("Eval")]
@@ -426,7 +419,7 @@ namespace DiscordBot
         {
             string text = string.Join(" ", content);
 
-            SendDM(ctx, id, text);
+            await SendDM(ctx, id, text);
             await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
         }
 

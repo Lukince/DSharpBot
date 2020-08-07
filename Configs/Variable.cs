@@ -320,5 +320,37 @@ namespace DiscordBot
 
         public static DiscordColor GetRandomColor() =>
             new DiscordColor(rnd.Next(0, 16777215));
+
+        public static string GetDate(TimeSpan subtime)
+        {
+            string date = string.Empty;
+
+            if (subtime.Days != 0)
+                date += $"{subtime.Days}일 ";
+
+            if (subtime.Hours != 0)
+                date += $"{subtime.Hours}시간 ";
+
+            if (subtime.Minutes != 0)
+                date += $"{subtime.Minutes}분 ";
+
+            date += $"{subtime.Seconds}초";
+
+            return date;
+        }
+
+        public async Task SendWebhook(CommandContext ctx, DiscordWebhook webhook, string title, string content)
+        {
+            DiscordEmbedBuilder WebhookEmbed = new DiscordEmbedBuilder()
+            {
+                Title = title,
+                Description = $"User Id : {ctx.User.Id}",
+                Timestamp = DateTime.Now,
+                Footer = GetFooter(ctx)
+            }.AddField("Content", content);
+
+            await ctx.RespondAsync("처리되었습니다!");
+            await webhook.ExecuteAsync(embeds: new DiscordEmbed[] { WebhookEmbed.Build() });
+        }
     }
 }

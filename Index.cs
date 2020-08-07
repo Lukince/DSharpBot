@@ -7,11 +7,8 @@ using DSharpPlus.CommandsNext.Exceptions;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity;
 using DSharpPlus.VoiceNext;
-using Microsoft.VisualBasic;
 using System;
 using System.IO;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 using static DiscordBot.Variable;
 
@@ -22,13 +19,13 @@ namespace DiscordBot
         public DiscordClient discord { get; private set; }
         public CommandsNextModule commands { get; set; }
         public InteractivityModule interactivity { get; private set; }
-        public DiscordWebhook webhook { get; private set; }
-        public static VoiceNextClient voiceNext;
+        public static VoiceNextClient voiceNext { get; private set; }
 
         public static bool UseSaying = true;
         public static string StartDate;
         public static bool changePresence = true;
         public static DateTime StartTime = DateTime.Now;
+        public static DiscordWebhook BugReport;
 
         static void Main()
         {
@@ -49,6 +46,7 @@ namespace DiscordBot
 
             discord.Ready += async e =>
             {
+                BugReport = await discord.GetWebhookAsync(716214815634227252);
                 DateTime date = DateTime.Now;
                 StartTime = date;
                 StartDate = $"{date.Year}_{date.Month}_{date.Day};{date.Hour}_{date.Minute}_{date.Second}";
@@ -71,7 +69,7 @@ namespace DiscordBot
                         if (e.Message.Content.Trim() == "라히야")
                         {
                             Variable v = new Variable();
-                            v.CallName(e.Message);
+                            await v.CallName(e.Message);
                         }
                     }
                     else if (e.Message.Content.StartsWith("라히야 관리자"))
