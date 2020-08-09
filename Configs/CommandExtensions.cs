@@ -3,6 +3,7 @@ using static DiscordBot.Index;
 using DSharpPlus.Entities;
 using DSharpPlus.CommandsNext;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace DiscordBot.Configs
 {
@@ -31,6 +32,16 @@ namespace DiscordBot.Configs
                 s = string.Join(string.Empty, s.DeleteString(d));
 
             return s;
+        }
+
+        public static string[] Combine(this string[] array1, string[] array2)
+        {
+            List<string> output = new List<string>();
+            foreach (string s in array1)
+                output.Add(s);
+            foreach (string s in array2)
+                output.Add(s);
+            return output.ToArray();
         }
     }
 }

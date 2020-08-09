@@ -397,7 +397,7 @@ namespace DiscordBot
                     ThumbnailUrl = user.AvatarUrl
                 };
 
-                TransportGame usergame = user.Presence.Game ?? null;
+                TransportGame usergame = user.Presence.Game;
                 DiscordMember member = ctx.Guild.GetMemberAsync(UserId).GetAwaiter().GetResult();
 
                 DiscordEmoji[] StatusEmoji = {
@@ -458,9 +458,11 @@ namespace DiscordBot
                     Color = RandomColor[rnd.Next(0, RandomColor.Length - 1)]
                 };
 
+                Console.WriteLine(e.StackTrace);
                 dmb.AddField($":inbox_tray: Input", ctx.Message.Content);
                 dmb.AddField($":outbox_tray: Output", "```Error!\n" +
-                    $"{e.Message}\n" +
+                    $"{e.Message}\n\n" +
+                    $"구동 이후로 수집된 정보가 없거나 해당 서버에 유저가 없습니다" +
                     "Tip! : 아이디가 잘못됬거나 해당 유저와 봇이 같은 서버 내에 있는지 확인하세요!```");
 
                 Console.WriteLine($"{e.Message}\n{e.StackTrace}\n{e.InnerException}");
@@ -469,9 +471,10 @@ namespace DiscordBot
             }
         }
 
-        [Command("정보"), CheckAdmin]
-        public async Task Info(CommandContext ctx)
+        [Command("정보")]
+        public async Task Info(CommandContext ctx, ulong id)
         {
+            /*
             try
             {
                 DiscordMember User;
@@ -517,6 +520,9 @@ namespace DiscordBot
                 await ctx.RespondAsync("O_O! It has an ERROR!\n" +
                     $"```{e.Message}```");
             }
+            */
+
+            await ctx.RespondAsync(embed: GetInfo(ctx, id).Build());
         }
 
         [Command("서버인원")]
