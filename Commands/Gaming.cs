@@ -750,11 +750,13 @@ namespace DiscordBot
             DiscordEmbedBuilder GameEmbed = new DiscordEmbedBuilder() { Color = GetRandomColor() };
 
             // Game Variables
+#pragma warning disable CS0219 // 변수가 할당되었지만 해당 값이 사용되지 않았습니다.
             int Round;
             int[] HealthList = { 100 }; // TODO: Set each round boss's hp
             float CurrentHealth = HealthList[0];
             int LeftBallCount;
             int PreviousBallIndex;
+#pragma warning restore CS0219 // 변수가 할당되었지만 해당 값이 사용되지 않았습니다.
 
             /* 
              * Each Ball's Ablity

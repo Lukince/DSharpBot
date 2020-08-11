@@ -4,6 +4,7 @@ using DSharpPlus.Entities;
 using DSharpPlus.CommandsNext;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System;
 
 namespace DiscordBot.Configs
 {
@@ -42,6 +43,17 @@ namespace DiscordBot.Configs
             foreach (string s in array2)
                 output.Add(s);
             return output.ToArray();
+        }
+
+        public static T[] Map<T>(this T[] array, Func<T, T> func) //where T : IEnumerable<T>
+        {
+            List<T> list = new List<T>();
+            foreach (T data in array)
+            {
+                list.Add(func.Invoke(data));
+            }
+
+            return list.ToArray();
         }
     }
 }

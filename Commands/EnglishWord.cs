@@ -16,7 +16,7 @@ using DiscordBot.Configs;
 
 namespace DiscordBot.Commands
 {
-    [BlackList, CheckAdmin, Group("영단어")]
+    [BlackList, Group("영단어")]
     class EnglishWord
     {
         private static readonly Random rnd = new Random();
@@ -60,6 +60,8 @@ namespace DiscordBot.Commands
         {
             WordList.Clear();
             ReloadWords();
+            CustomWordList.Clear();
+            ReloadCustomWords();
             await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
         }
 
@@ -74,6 +76,14 @@ namespace DiscordBot.Commands
                     File.Delete(Directory.GetFiles("tmp").Where(l => l == $"u{u}").First());
 
             await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
+        }
+
+        [Command("등록")]
+        public async Task AddNewWord(CommandContext ctx, string word, params string[] description)
+        {
+            string d = string.Join(' ', description);
+            File.AppendAllText(CustomWordListPath, $"{word}|{d}|{ctx.User.Username}#{ctx.User.Discriminator}\n");
+            await ctx.RespondAsync($"단어 : {word}\n설명 : {d}");
         }
 
         [Command("신고")]
@@ -100,6 +110,31 @@ namespace DiscordBot.Commands
                 File.AppendAllLines(CustomWordListPath, File.ReadAllLines(file.FileName));
                 File.AppendAllText(CustomWordListPath, "\n");
             }
+        }
+
+        [Command("시험")]
+        public async Task WordTest(CommandContext ctx)
+        {
+            DiscordEmbedBuilder ShowTestList = new DiscordEmbedBuilder()
+            {
+                Title = "시험 목록",
+                Color = GetRandomColor(),
+                Timestamp = DateTime.Now,
+                Footer = GetFooter(ctx),
+                Description = "시험 볼 단어장을 입력해 주세요 ex) 단어장 1~3  커스텀 1~2"
+            };
+
+            ShowTestList.AddField("단어장 수", WordList.Count.ToString(), true);
+            ShowTestList.AddField("커스텀 단어장 수", CustomWordList.Count.ToString(), true);
+
+            await ctx.RespondAsync(embed: ShowTestList.Build());
+
+            var interactivity = ctx.Client.GetInteractivityModule();
+            var answer = await interactivity.WaitForMessageAsync(l =>
+                l.Author == ctx.User && l.Channel == ctx.Channel);
+
+            int[] test = { 0, 2, 3 };
+            test.Map(x => x * x);
         }
 
         [Command("검색")]
@@ -129,9 +164,15 @@ namespace DiscordBot.Commands
         [Command("커스텀")]
         public async Task CustomEnglish_Word(CommandContext ctx, int page, bool blind = false)
         {
+            if (page < 1)
+            {
+                await ctx.RespondAsync("번호는 0보다 커야해요!");
+                return;
+            }
+
             if (page > CustomWordList.Values.Count)
             {
-                await ctx.RespondAsync($"단어장은 {CustomWordList.Values.Count}일차 까지 있어요!");
+                await ctx.RespondAsync($"커스텀 단어장은 {CustomWordList.Values.Count}일차 까지 있어요!");
                 return;
             }
 
@@ -142,11 +183,11 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            File.Create(lockfile).Dispose();
+            File.Create(lockfile).Close();
 
             string[] tips =
             {
-                "해당 단어장은 능률 보카 고교 필수편을 기반으로 제작되었습니다",
+                "해당 단어장은 여러분의 단어들을 기반으로 제작되었습니다",
                 "단어에 오타나 오역 등이 있다면 `라히야 영단어 신고 [내용]` 으로 신고해주세요",
                 "여러분을 위한 커스텀 단어장 등을 구상하고 있습니다! 조금만 기다려 주세요",
                 "단어장을 준비하는 2초 동안 이곳에 팁이 표시되요!",
@@ -270,6 +311,12 @@ namespace DiscordBot.Commands
         [Command("단어장")]
         public async Task English_Word(CommandContext ctx, int page, bool blind = false)
         {
+            if (page < 1)
+            {
+                await ctx.RespondAsync("번호는 0보다 커야해요!");
+                return;
+            }
+
             if (page > WordList.Values.Count)
             {
                 await ctx.RespondAsync($"단어장은 {WordList.Values.Count}일차 까지 있어요!");
@@ -283,7 +330,7 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            File.Create(lockfile).Dispose();
+            File.Create(lockfile).Close();
 
             string[] tips =
             {
@@ -365,34 +412,6 @@ namespace DiscordBot.Commands
                             if (index < word.Count - 1)
                                 index++;
                         }
-                        else if (reaction.Emoji == Emoji[3])
-                        {
-                            var message = await ctx.RespondAsync("이동할 단어 번호를 입력하세요");
-
-                            int value;
-                            while (true)
-                            {
-                                var context = await interactivity.WaitForMessageAsync(l => 
-                                    int.TryParse(l.Content, out int result) && l.Author == ctx.User && l.Channel == ctx.Channel);
-
-                                if (context != null && word.Count >= int.Parse(context.Message.Content))
-                                {
-                                    try { await context.Message.DeleteAsync(); }
-                                    catch (Exception) { }
-                                    try { await message.DeleteAsync(); }
-                                    catch (Exception) { }
-                                    value = int.Parse(context.Message.Content);
-                                    break;
-                                }
-                                else if (context != null && word.Count < int.Parse(context.Message.Content))
-                                    await ctx.RespondAsync($"{word.Count} 보다 같거나 작아야 합니다!");
-                                else
-                                    await ctx.RespondAsync("숫자를 입력해 주세요");
-                            }
-
-                            index = value - 1;
-                        }
-
                         await msg.DeleteReactionAsync(reaction.Emoji, ctx.User);
                         WordEmbed.ClearFields();
                         WordEmbed.Title = $"{page}일차 : {index + 1} / {word.Count}";
