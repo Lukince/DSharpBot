@@ -350,14 +350,15 @@ namespace DiscordBot
             };
 
             string Files = string.Empty;
-            foreach (string filepath in Directory.GetFiles("../../../", "*.*", SearchOption.TopDirectoryOnly))
+            foreach (string filepath in Directory.GetFiles("../../../", "*.*", SearchOption.TopDirectoryOnly).Where(l => l.EndsWith(".cs")))
                 Files += $"{DiscordEmoji.FromGuildEmote(ctx.Client, 715420547005284372)} {Path.GetFileName(filepath)}\n";
 
             dmb.AddField($"{DiscordEmoji.FromGuildEmote(ctx.Client, 715420547038838815)} FolderName : DiscordBot", Files);
 
             foreach (string directorypath in Directory.GetDirectories("../../../"))
             {
-                if (Path.GetFullPath(directorypath).Contains("bin") || Path.GetFullPath(directorypath).Contains("obj"))
+                if (Path.GetFullPath(directorypath).Contains("bin") || Path.GetFullPath(directorypath).Contains("obj")
+                  ||Path.GetFullPath(directorypath).Contains("Properties") || Path.GetFullPath(directorypath).Contains("GameResource"))
                     continue;
 
                 string s = string.Empty;

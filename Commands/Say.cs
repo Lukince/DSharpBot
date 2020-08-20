@@ -35,13 +35,22 @@ namespace DiscordBot.Commands
         [Command("단어추가")]
         public async Task WordAdd(CommandContext ctx, string word, params string[] description)
         {
+            if (word.Contains('|') || string.Join(' ', description).Contains('|'))
+            {
+                await ctx.RespondAsync("'|'가 들어가 있으면 안되요! 데이터가 망가져요!");
+                return;
+            }
+
             string content = string.Join(' ', description);
             var compair = File.ReadAllLines(WordPath).Where(l => l.Split('|')[1] == content);
 
-            if (File.ReadAllLines(WordPath).Where(l => l.Split('|')[0] == word).First().Split('|')[3] == "Lock")
+            if (File.ReadAllLines(WordPath).Where(l => l.Split('|')[0] == word).Count() > 0)
             {
-                await ctx.RespondAsync("해당 단어는 설명을 추가하거나 변경할수 없어요!");
-                return;
+                if (File.ReadAllLines(WordPath).Where(l => l.Split('|')[0] == word).First().Split('|')[3] == "Lock")
+                {
+                    await ctx.RespondAsync("해당 단어는 설명을 추가하거나 변경할수 없어요!");
+                    return;
+                }
             }
 
             if (compair.Count() > 0)

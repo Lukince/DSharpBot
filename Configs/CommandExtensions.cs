@@ -55,5 +55,21 @@ namespace DiscordBot.Configs
 
             return list.ToArray();
         }
+
+        public static string ToString(this DiscordChannel[] chns)
+        {
+            string output = string.Empty;
+            foreach (var chn in chns)
+                output += $"{chn.Mention} ";
+            return output.TrimEnd();
+        }
+
+        public static bool Contains(this ulong[] ul, ulong content)
+        {
+            foreach (ulong u in ul)
+                if (u == content)
+                    return true;
+            return false;
+        }
     }
 }

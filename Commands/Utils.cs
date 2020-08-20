@@ -2,6 +2,7 @@
 using DecimalConverter;
 using DiscordBot.Attributes;
 using DiscordBot.Commands;
+using DiscordBot.Configs;
 using DiscordBot.Exceptions;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
@@ -1288,6 +1289,65 @@ namespace DiscordBot
 
                 n++;
             } while (true);
+        }
+
+        [Command("커넥션"), CheckAdmin]
+        public async Task Connection(CommandContext ctx, params string[] _)
+        {
+            if (ctx.Message.MentionedChannels.Count < 2)
+            {
+                await ctx.RespondAsync("최소 2개 이상의 채널을 언급해야 해요!");
+                return;
+            }
+
+            DiscordChannel[] chns = ctx.Message.MentionedChannels.ToArray();
+            Dictionary<DiscordChannel, DiscordWebhook> websends = new Dictionary<DiscordChannel, DiscordWebhook>();
+
+            foreach (DiscordChannel chn in chns)
+            {
+                DiscordWebhook web = null;
+
+                DiscordWebhook[] webhooks = (await chn.GetWebhooksAsync()).ToArray();
+                foreach (DiscordWebhook webhook in webhooks)
+                    if (webhook.User == ctx.Client.CurrentUser)
+                    {
+                        web = webhook;
+                        break;
+                    }
+                if (web == null)
+                    web = await chn.CreateWebhookAsync("ChannelConnection");
+
+                websends.Add(chn, web);
+            }
+
+            await ctx.RespondAsync($"연결 완료! 연결된 채널 : {Extensions.ToString(chns)}");
+
+            while (true)
+            {
+                var interactivity = ctx.Client.GetInteractivityModule();
+                var message = await interactivity.WaitForMessageAsync(l => chns.Contains(l.Channel) && !l.Author.IsBot);
+
+                if (message != null)
+                {
+                    if (message.Message.Content == "#Disconnect" && message.User == ctx.User || GetAdminIds().Contains(message.User.Id))
+                    {
+                        await ctx.RespondAsync("연결이 해지되었습니다!");
+                        return;
+                    }
+
+                    foreach (var chn in websends)
+                    {
+                        if (chn.Key == message.Channel)
+                            continue;
+
+                        var user = message.User;
+                        await chn.Value.ExecuteAsync(
+                            content: message.Message.Content,
+                            username: user.Username,
+                            avatar_url: user.AvatarUrl);
+                    }
+                }
+            }
         }
     }
 }
