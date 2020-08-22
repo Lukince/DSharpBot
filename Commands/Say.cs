@@ -46,11 +46,12 @@ namespace DiscordBot.Commands
 
             if (File.ReadAllLines(WordPath).Where(l => l.Split('|')[0] == word).Count() > 0)
             {
-                if (File.ReadAllLines(WordPath).Where(l => l.Split('|')[0] == word).First().Split('|')[3] == "Lock")
-                {
-                    await ctx.RespondAsync("해당 단어는 설명을 추가하거나 변경할수 없어요!");
-                    return;
-                }
+                if (File.ReadAllLines(WordPath).Where(l => l.Split('|')[0] == word && l.Split('|')[2] == "Admin").Count() > 0)
+                    if (File.ReadAllLines(WordPath).Where(l => l.Split('|')[0] == word).First().Split('|')[3] == "Lock")
+                    {
+                        await ctx.RespondAsync("해당 단어는 설명을 추가하거나 변경할수 없어요!");
+                        return;
+                    }
             }
 
             if (compair.Count() > 0)

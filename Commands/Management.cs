@@ -372,49 +372,6 @@ namespace DiscordBot
             await ctx.RespondAsync(embed: dmb.Build());
         }
 
-        [Command("Eval")]
-        public async Task EvalCommand(CommandContext ctx, [RemainingText] string code)
-        {
-            var msg = ctx.Message;
-
-            var cs1 = code.IndexOf("```") + 3;
-            cs1 = code.IndexOf('\n', cs1) + 1;
-            var cs2 = code.LastIndexOf("```");
-
-            if (cs1 == -1 || cs2 == -1)
-                throw new ArgumentException("You need to wrap the code into a code block.");
-
-            var cs = code[cs1..cs2];
-
-            msg = await ctx.RespondAsync("", embed: new DiscordEmbedBuilder()
-                .WithColor(new DiscordColor("#FF007F"))
-                .WithDescription("Evaluating...")
-                .Build()).ConfigureAwait(false);
-
-            try
-            {
-                var globals = new TestVariables(ctx.Message, ctx.Client, ctx);
-
-                var sopts = ScriptOptions.Default;
-                sopts = sopts.WithImports("System", "System.Collections.Generic", "System.Linq", "System.Text", "System.Threading.Tasks", "DSharpPlus", "DSharpPlus.CommandsNext", "DSharpPlus.Interactivity");
-                sopts = sopts.WithReferences(AppDomain.CurrentDomain.GetAssemblies().Where(xa => !xa.IsDynamic && !string.IsNullOrWhiteSpace(xa.Location)));
-
-                var script = CSharpScript.Create(cs, sopts, typeof(TestVariables));
-                script.Compile();
-                var result = await script.RunAsync(globals).ConfigureAwait(false);
-
-                if (result != null && result.ReturnValue != null && !string.IsNullOrWhiteSpace(result.ReturnValue.ToString()))
-                    await msg.ModifyAsync(embed: new DiscordEmbedBuilder { Title = "Evaluation Result", Description = result.ReturnValue.ToString(), Color = new DiscordColor("#007FFF") }.Build()).ConfigureAwait(false);
-                else
-                    await msg.ModifyAsync(embed: new DiscordEmbedBuilder { Title = "Evaluation Successful", Description = "No result was returned.", Color = new DiscordColor("#007FFF") }.Build()).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                await msg.ModifyAsync(embed: new DiscordEmbedBuilder { Title = "Evaluation Failure", Description = string.Concat("**", ex.GetType().ToString(), "**: ", ex.Message), Color = new DiscordColor("#FF0000") }.Build()).ConfigureAwait(false);
-            }
-
-        }
-
         [Command("SendDM")]
         public async Task SendDM(CommandContext ctx, ulong id, params string[] content)
         {

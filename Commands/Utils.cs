@@ -1331,6 +1331,8 @@ namespace DiscordBot
                 {
                     if (message.Message.Content == "#Disconnect" && message.User == ctx.User || GetAdminIds().Contains(message.User.Id))
                     {
+                        foreach (var dweb in websends)
+                            await dweb.Value.DeleteAsync();
                         await ctx.RespondAsync("연결이 해지되었습니다!");
                         return;
                     }

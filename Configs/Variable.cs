@@ -148,31 +148,6 @@ namespace DiscordBot
 
         public static string HistoryPath = "Data/History.txt";
 
-        public class TestVariables
-        {
-            public DiscordMessage Message { get; set; }
-            public DiscordChannel Channel { get; set; }
-            public DiscordGuild Guild { get; set; }
-            public DiscordUser User { get; set; }
-            public DiscordMember Member { get; set; }
-            public CommandContext Context { get; set; }
-
-            public TestVariables(DiscordMessage msg, DiscordClient client, CommandContext ctx)
-            {
-                this.Client = client;
-
-                this.Message = msg;
-                this.Channel = msg.Channel;
-                this.Guild = this.Channel.Guild;
-                this.User = this.Message.Author;
-                if (this.Guild != null)
-                    this.Member = this.Guild.GetMemberAsync(this.User.Id).ConfigureAwait(false).GetAwaiter().GetResult();
-                this.Context = ctx;
-            }
-
-            public DiscordClient Client;
-        }
-
         public static Dictionary<string, ulong> DiscordEmojis = new Dictionary<string, ulong>()
         {
             { "Correct", 617684865529282570 },
