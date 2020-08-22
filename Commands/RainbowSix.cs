@@ -12,7 +12,7 @@ using DiscordBot.Attributes;
 namespace DiscordBot
 {
 	[BlackList]
-    public class RainbowSix 
+    public class RainbowSix : BaseCommandModule
     {
         enum R6Attacker
         {

@@ -14,7 +14,7 @@ namespace DiscordBot.Attributes
 {
     class AccountAgreeAttribute : CheckBaseAttribute
     {
-        public override async Task<bool> CanExecute(CommandContext ctx, bool help)
+        public override async Task<bool> ExecuteCheckAsync(CommandContext ctx, bool help)
         {
             string Id = $"{IdLocation}/{ctx.User.Id}";
             string OldId = $"ReloadAc/{ctx.User.Id}";
@@ -31,7 +31,7 @@ namespace DiscordBot.Attributes
                     "*현재 테스트 중인 봇으로 정식 출시 이후나 테스트 중 계정이 삭제될수도 있음을 알립니다.\n" +
                     "또한 테스트 중에 사용해주신 분들에게는 추가로 보상이 지급될 예정입니다.",
                     Color = RandomColor[rnd.Next(0, RandomColor.Length - 1)],
-                    ThumbnailUrl = "https://i.imgur.com/wjV4Ab1.png"
+                    Thumbnail = new DiscordEmbedBuilder.EmbedThumbnail { Url = "https://i.imgur.com/wjV4Ab1.png" }
                 };
 
                 if (File.Exists(OldId))
@@ -47,8 +47,8 @@ namespace DiscordBot.Attributes
                 await msg.CreateReactionAsync(NotCorrect);
                 await Task.Delay(1000);
 
-                var interactivity = ctx.Client.GetInteractivityModule();
-                var reactions = await interactivity.WaitForReactionAsync(x => x.Id == Correct.Id || x.Id == NotCorrect.Id, ctx.User, TimeSpan.FromMinutes(5));
+                var interactivity = ctx.Client.GetInteractivity();
+                var reactions = (await interactivity.WaitForReactionAsync(x => x.Emoji.Id == Correct.Id || x.Emoji.Id == NotCorrect.Id, ctx.User, TimeSpan.FromMinutes(5))).Result;
 
                 if (reactions != null)
                 {

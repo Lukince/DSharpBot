@@ -31,7 +31,7 @@ using static DSharpPlus.Entities.DiscordEmbedBuilder;
 namespace DiscordBot
 {
     [BlackList, CheckAdmin]
-    class Management
+    class Management : BaseCommandModule
     {
         [Command("Info"), Check]
         public async Task Info(CommandContext ctx, ulong id)
@@ -243,7 +243,7 @@ namespace DiscordBot
             }
 
             await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
-            await ctx.Client.UpdateStatusAsync(new DiscordGame(message), us);
+            await ctx.Client.UpdateStatusAsync(activity: new DiscordActivity(message), us);
         }
 
         [Command("UserCount")]
@@ -259,7 +259,7 @@ namespace DiscordBot
 
             string Roles = string.Empty;
 
-            foreach (DiscordRole dr in ctx.Guild.Roles)
+            foreach (DiscordRole dr in ctx.Guild.Roles.Values)
             {
                 if (dr.Name != "@everyone")
                     Roles += $"{dr.Name} / ";
@@ -563,12 +563,7 @@ namespace DiscordBot
                 {
                     await ctx.RespondAsync("Options : Admin, NotUse, Hidden");
                     return;
-                }
-                else if (op == "--all")
-                {
-                    await Sudo(ctx, "라히야 Commands --admin --hidden --notuse");
-                    return;
-                }
+                }   
             }
 
             dmb.AddField("Group List", grouplist);
@@ -597,23 +592,11 @@ namespace DiscordBot
             {
                 var bot = await gs[i].GetMemberAsync(ctx.Client.CurrentUser.Id);
                 var members = gs[i].Members;
-                dmb.AddField(gs[i].Name, $"All : {members.Count}, Member : {members.Where(l => !l.IsBot).Count()}, Bot : {members.Where(l => l.IsBot).Count()} - 봇 이름: \"{bot.DisplayName}\"");
+                dmb.AddField(gs[i].Name, $"All : {members.Count}, Member : {members.Where(l => !l.Value.IsBot).Count()}, Bot : {members.Where(l => l.Value.IsBot).Count()} - 봇 이름: \"{bot.DisplayName}\"");
             }
 
             await ctx.Member.SendMessageAsync(embed: dmb.Build());
             await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
-        }
-
-        [Command("Sudo")]
-        public async Task Sudo(CommandContext ctx, params string[] content)
-        {
-            await ctx.CommandsNext.SudoAsync(ctx.User, ctx.Channel, string.Join(" ", content));
-        }
-
-        [Command("BotSudo"), DoNotUse]
-        public async Task BotSudo(CommandContext ctx, params string[] content)
-        {
-            await ctx.CommandsNext.SudoAsync(ctx.Client.CurrentUser, ctx.Channel, string.Join(" ", content));
         }
 
         [Command("py"), DoNotUse]
@@ -699,6 +682,7 @@ namespace DiscordBot
             }
         }
 
+        /*
         [Command("#GitTool")]
         public async Task GitTool(CommandContext ctx)
         {
@@ -708,8 +692,8 @@ namespace DiscordBot
             {
                 try
                 {
-                    var interactivity = ctx.Client.GetInteractivityModule();
-                    var reactions = await interactivity.WaitForMessageAsync(l => l.Author == ctx.User, TimeSpan.FromMinutes(5));
+                    var interactivity = ctx.Client.GetInteractivity();
+                    var reactions = (await interactivity.WaitForMessageAsync(l => l.Author == ctx.User, TimeSpan.FromMinutes(5))).Result;
 
                     if (reactions != null)
                     {
@@ -741,11 +725,10 @@ namespace DiscordBot
                             Output += proc.StandardOutput.ReadLine();
                         }
 
-                        /*
                         while (!proc.StandardError.EndOfStream)
                         {
                             Error += proc.StandardError.ReadLine();
-                        }*/
+                        }
 
                         if (Output == string.Empty)
                         {
@@ -796,6 +779,7 @@ namespace DiscordBot
                 }
             }
         }
+        */
 
         [Command("Shutdown")]
         public async Task Shutdown(CommandContext ctx)
@@ -832,8 +816,8 @@ namespace DiscordBot
                     Description = "관리자로 부터 관리자 권한에 대한 승인 요청이 왔습니다.",
                     Footer = new EmbedFooter()
                     {
-                        IconUrl = ctx.Client.CurrentApplication.Owner.AvatarUrl,
-                        Text = $"Request by {ctx.Client.CurrentApplication.Owner.Username}#{ctx.Client.CurrentApplication.Owner.Discriminator}"
+                        IconUrl = ctx.Client.CurrentApplication.Owners.First().AvatarUrl,
+                        Text = $"Request by {ctx.Client.CurrentApplication.Owners.First().Username}#{ctx.Client.CurrentApplication.Owners.First().Discriminator}"
                     },
                     Timestamp = DateTime.Now
                 };
@@ -854,8 +838,8 @@ namespace DiscordBot
                 await msg.CreateReactionAsync(NotCorrect);
                 await Task.Delay(1000);
 
-                var interactivity = ctx.Client.GetInteractivityModule();
-                var reaction = await interactivity.WaitForReactionAsync(x => x.Id == Correct.Id || x.Id == NotCorrect.Id, ctx.User);
+                var interactivity = ctx.Client.GetInteractivity();
+                var reaction = (await interactivity.WaitForReactionAsync(x => x.Emoji.Id == Correct.Id || x.Emoji.Id == NotCorrect.Id, ctx.User)).Result;
 
                 if (reaction != null)
                 {
@@ -1058,7 +1042,7 @@ namespace DiscordBot
                 schn = mchn.Mention;
             }
 
-            var interactivity = ctx.Client.GetInteractivityModule();
+            var interactivity = ctx.Client.GetInteractivity();
 
             var tmpmsg = await ctx.RespondAsync("This is Chatmode. All of your message will be send." +
                                     $"Connected Channel : {schn}");
@@ -1066,38 +1050,24 @@ namespace DiscordBot
             while (true)
             {
 
-                var msg = await interactivity.WaitForMessageAsync(l => l.Author == ctx.User
-                                                    && l.Channel == mchn);
+                var msg = (await interactivity.WaitForMessageAsync(l => l.Author == ctx.User
+                                                    && l.Channel == mchn)).Result;
 
                 if (msg != null)
                 {
-                    if (msg.Message.Content == "#Disconnect")
+                    if (msg.Content == "#Disconnect")
                         break;
                     else
                     {
-                        if (msg.Message.Content.StartsWith("//Channel//"))
+                        if (msg.Content.StartsWith("//Channel//"))
                         {
-                            string s = msg.Message.Content.Split("//Channel//")[1];
+                            string s = msg.Content.Split("//Channel//")[1];
                             chn = await ctx.Client.GetChannelAsync(ulong.Parse(s));
-                            await mchn.ModifyAsync(chn.Name);
+                            await mchn.ModifyAsync(l => l.Name = chn.Name);
                         }
-                        else if (msg.Message.Content.StartsWith("//Sudo//"))
+                        else if (msg.Content.Contains("//Edit:"))
                         {
-                            try
-                            {
-                                string s = msg.Message.Content.Split("//Sudo//")[1];
-                                await ctx.CommandsNext.SudoAsync(ctx.User, chn, s);
-                                await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
-                            }
-
-                            catch (Exception e)
-                            {
-                                await chn.SendMessageAsync(e.Message);
-                            }
-                        }
-                        else if (msg.Message.Content.Contains("//Edit:"))
-                        {
-                            string s = msg.Message.Content;
+                            string s = msg.Content;
                             string[] ss = s.Split("//Edit:");
                             string[] sss = ss[1].Split("//");
 
@@ -1106,9 +1076,9 @@ namespace DiscordBot
 
                             await SendEditMessage(chn, ss[0], time, edited);
                         }
-                        else if (msg.Message.Content.Contains("//Delete:"))
+                        else if (msg.Content.Contains("//Delete:"))
                         {
-                            string s = msg.Message.Content;
+                            string s = msg.Content;
                             string[] ss = s.Split("//Delete:");
                             string[] sss = ss[1].Split("//");
 
@@ -1117,7 +1087,7 @@ namespace DiscordBot
                             await SendDeleteMessage(chn, ss[0], time);
                         }
                         else
-                            await chn.SendMessageAsync(msg.Message.Content);
+                            await chn.SendMessageAsync(msg.Content);
                     }
                 }
             }
@@ -1161,7 +1131,7 @@ namespace DiscordBot
                 //Description = description,
                 Footer = GetFooter(ctx),
                 Timestamp = DateTime.Now,
-                ThumbnailUrl = Guild.IconUrl
+                Thumbnail = new EmbedThumbnail { Url = Guild.IconUrl }
             };
 
             await ctx.RespondAsync(embed: dmb.Build());

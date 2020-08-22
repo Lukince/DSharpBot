@@ -9,6 +9,7 @@ using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Net.Abstractions;
+using DSharpPlus.VoiceNext;
 using Encryption;
 using ImageProcessor;
 using ImageProcessor.Imaging;
@@ -33,11 +34,12 @@ using static DiscordBot.Variable;
 using static DSharpPlus.Entities.DiscordEmbedBuilder;
 using static Encryption.Encryption;
 using static QNConverter.TemperatureConvert;
+using Extensions = DiscordBot.Configs.Extensions;
 
 namespace DiscordBot
 {
     [BlackList]
-    class Utils
+    class Utils : BaseCommandModule
     {
         public static HelpCommand HelpCommand = new HelpCommand();
         public static CommandHelp CommandHelp = new CommandHelp();
@@ -67,7 +69,7 @@ namespace DiscordBot
             DiscordEmbedBuilder dmb = new DiscordEmbedBuilder()
             {
                 Title = "초대 링크",
-                ThumbnailUrl = ctx.Client.CurrentUser.AvatarUrl,
+                Thumbnail = new EmbedThumbnail { Url = ctx.Client.CurrentUser.AvatarUrl },
                 Color = RandomColor[rnd.Next(0, RandomColor.Length - 1)]
             };
 
@@ -395,10 +397,10 @@ namespace DiscordBot
                     Color = RandomColor[rnd.Next(0, RandomColor.Length - 1)],
                     Footer = GetFooter(ctx),
                     Timestamp = ctx.Message.Timestamp,
-                    ThumbnailUrl = user.AvatarUrl
+                    Thumbnail = new EmbedThumbnail { Url = user.AvatarUrl }
                 };
 
-                TransportGame usergame = user.Presence.Game;
+                DiscordActivity usergame = user.Presence.Activity;
                 DiscordMember member = ctx.Guild.GetMemberAsync(UserId).GetAwaiter().GetResult();
 
                 DiscordEmoji[] StatusEmoji = {
@@ -439,15 +441,15 @@ namespace DiscordBot
                 dmb.AddField("태그", $"{user.Username}#{user.Discriminator}");
                 dmb.AddField("상태", status);
                 if (usergame != null)
-                    dmb.AddField("게임", $"이름 : {((usergame.Name == "Custom Status") ? usergame.State : usergame.Name)}\n" +
-                        $"내용 : " + (string.IsNullOrEmpty(usergame.Details) ? "None" : usergame.Details) + "\n");
+                    dmb.AddField("게임", $"이름 : {((usergame.ActivityType == ActivityType.Custom) ? "CustomAcitivty" : usergame.Name)}\n" +
+                        $"내용 : " + ((usergame.ActivityType == ActivityType.Custom) ? usergame.CustomStatus.Emoji?.ToString() + usergame.CustomStatus.Name : usergame.RichPresence.ToString()) + "\n");
                 //$"시간 : {DateTime.Now.Subtract(usergame.Timestamps.Start.Value.DateTime)}");
                 dmb.AddField("길드 가입일", member.JoinedAt.DateTime.ToString());
                 dmb.AddField("디스코드 가입일", user.CreationTimestamp.DateTime.ToString());
                 dmb.AddField("역할", string.IsNullOrEmpty(roles) ? "None" : roles);
                 if (usergame != null)
-                    if (usergame.StreamType == GameStreamType.Twitch)
-                        dmb.AddField("방송중", $"{(string.IsNullOrEmpty(usergame.Url) ? "KnownUrl" : usergame.Url)}");
+                    if (usergame.ActivityType == ActivityType.Streaming)
+                        dmb.AddField("방송중", $"{(string.IsNullOrEmpty(usergame.StreamUrl) ? "KnownUrl" : usergame.StreamUrl)}");
 
                 return dmb;
             }
@@ -578,25 +580,26 @@ namespace DiscordBot
                 var msg = await ctx.RespondAsync("*주의 히스토리가 8개 이상으로 많은 히스토리 목록으로 인해 도배가 될수도 있습니다.\n" +
                     "계속 진행을 원하시면 [진행]을 입력해주시고, [DM] 입력시 DM으로 히스토리를 보내드립니다.\n" +
                     "해당 메시지 이후에 30초가 지나거나 [취소]를 입력한 경우 출력이 취소됩니다.");
-                var interactivity = ctx.Client.GetInteractivityModule();
-                var messages = await interactivity.WaitForMessageAsync(l => l.Id == ctx.User.Id && l.Channel == ctx.Channel &&
-                l.Content == "진행" || l.Content.ToLower() == "dm" || l.Content == "취소", TimeSpan.FromSeconds(30));
+                var interactivity = ctx.Client.GetInteractivity();
+                var message = (await interactivity.WaitForMessageAsync(l => l.Id == ctx.User.Id && l.Channel == ctx.Channel &&
+                l.Content == "진행" || l.Content.ToLower() == "dm" || l.Content == "취소", TimeSpan.FromSeconds(30)));
 
-                if (messages != null)
+                if (message.Result != null)
                 {
-                    if (messages.Message.Content == "확인")
+                    var messages = message.Result;
+                    if (messages.Content == "확인")
                         await ctx.RespondAsync(embed: dmb.Build());
-                    else if (messages.Message.Content.ToLower() == "dm")
+                    else if (messages.Content.ToLower() == "dm")
                     {
                         await ctx.Member.SendMessageAsync(embed: dmb.Build());
                         await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
                     }
-                    else if (messages.Message.Content == "취소")
+                    else if (messages.Content == "취소")
                     {
                         await msg.ModifyAsync("취소되었습니다.");
                     }
                 }
-                else
+                if (message.TimedOut)
                 {
                     await msg.ModifyAsync("30초 초과로 취소되었습니다.");
                 }
@@ -667,7 +670,7 @@ namespace DiscordBot
                     Color = DiscordColor.Green,
                     Timestamp = DateTime.Now,
                     Footer = GetFooter(ctx),
-                    ThumbnailUrl = Urls.Papago
+                    Thumbnail = new EmbedThumbnail { Url = Urls.Papago }
                 };
 
                 dmb.AddField(":inbox_tray: 번역 전", $"```{s}```");
@@ -778,13 +781,13 @@ namespace DiscordBot
                 else if (BaseOption.ToLower() == "rsa")
                     try
                     { 
-                        var interactivity = ctx.Client.GetInteractivityModule();
-                        var respond = await interactivity.WaitForMessageAsync(l => 
-                            l.Author == ctx.User && l.Channel == ctx.Channel);
+                        var interactivity = ctx.Client.GetInteractivity();
+                        var respond = (await interactivity.WaitForMessageAsync(l => 
+                            l.Author == ctx.User && l.Channel == ctx.Channel)).Result;
 
                         if (respond != null)
                         {
-                            output = rsa.RSADecrypt(input, respond.Message.Content, encoding);
+                            output = rsa.RSADecrypt(input, respond.Content, encoding);
                         }
                         else
                         {
@@ -827,10 +830,7 @@ namespace DiscordBot
                     await ctx.RespondAsync(embed: dmb.Build());
                 }
 
-                [Command("RGB")]
-                public async Task Runrgb(CommandContext ctx, string HexCode) { await ctx.CommandsNext.SudoAsync(ctx.User, ctx.Channel, $"라히야 색깔 rgb {HexCode}"); }
-
-                [Command("rgb")]
+                [Command("rgb"), Aliases("RGB")]
                 public async Task GetRGB(CommandContext ctx, string HexCode)
                 {
 
@@ -889,22 +889,16 @@ namespace DiscordBot
                         ImageFactory image = new ImageFactory();
                         image.Load("White.png");
                         image.BackgroundColor(GetColor.GetColorFromHex($"#{Hex}")).Save("White.png");
-                        await ctx.RespondWithFileAsync(file_path: "Color.png");
+                        await ctx.RespondWithFileAsync(fileName: "Color.png", new FileStream("Color.png", FileMode.Open));
                     }
 
-                    [Command("RGB")]
-                    public async Task Image_RGB(CommandContext ctx, int r, int g, int b)
-                    {
-                        await ctx.CommandsNext.SudoAsync(ctx.User, ctx.Channel, $"라히야 색깔 이미지 rgb {r} {g} {b}");
-                    }
-
-                    [Command("rgb")]
+                    [Command("rgb"), Aliases("RGB")]
                     public async Task Image_rgb(CommandContext ctx, int r, int g, int b)
                     {
                         ImageFactory image = new ImageFactory();
                         image.Load("White.png");
                         image.BackgroundColor(GetColor.GetColorFromArgb(255, r, g, b)).Save("White.png");
-                        await ctx.RespondWithFileAsync(file_path: "Color.png");
+                        await ctx.RespondWithFileAsync(fileName: "Color.png", new FileStream("Color.png", FileMode.Open));
                     }
                 }
             }
@@ -1291,7 +1285,7 @@ namespace DiscordBot
             } while (true);
         }
 
-        [Command("커넥션"), CheckAdmin]
+        [Command("커넥션"), CheckAdmin, Check]
         public async Task Connection(CommandContext ctx, params string[] _)
         {
             if (ctx.Message.MentionedChannels.Count < 2)
@@ -1324,12 +1318,12 @@ namespace DiscordBot
 
             while (true)
             {
-                var interactivity = ctx.Client.GetInteractivityModule();
-                var message = await interactivity.WaitForMessageAsync(l => chns.Contains(l.Channel) && !l.Author.IsBot);
+                var interactivity = ctx.Client.GetInteractivity();
+                var message = (await interactivity.WaitForMessageAsync(l => chns.Contains(l.Channel) && !l.Author.IsBot)).Result;
 
                 if (message != null)
                 {
-                    if (message.Message.Content == "#Disconnect" && message.User == ctx.User || GetAdminIds().Contains(message.User.Id))
+                    if (message.Content == "#Disconnect" && message.Author == ctx.User || GetAdminIds().Contains(message.Author.Id))
                     {
                         foreach (var dweb in websends)
                             await dweb.Value.DeleteAsync();
@@ -1342,14 +1336,29 @@ namespace DiscordBot
                         if (chn.Key == message.Channel)
                             continue;
 
-                        var user = message.User;
-                        await chn.Value.ExecuteAsync(
-                            content: message.Message.Content,
-                            username: user.Username,
-                            avatar_url: user.AvatarUrl);
+                        var user = message.Author;
+                        await chn.Value.ExecuteAsync( new DiscordWebhookBuilder {
+                            Content = message.Content,
+                            Username = user.Username,
+                            AvatarUrl = user.AvatarUrl });
                     }
                 }
             }
+        }
+
+        [Command("랜덤유저")]
+        public async Task RandomUser(CommandContext ctx, params string[] _)
+        {
+            DiscordChannel channel;
+            if (ctx.Message.MentionedChannels.Count == 0)
+                channel = (await ctx.Guild.GetMemberAsync(ctx.User.Id)).VoiceState.Channel;
+            else
+                channel = ctx.Message.MentionedChannels.First();
+
+            var Members = ctx.Guild.Members.Where(l => l.Value.VoiceState?.Channel == channel).ToArray();
+            var n = rnd.Next(0, Members.Count());
+            await ctx.RespondAsync(embed: new DiscordEmbedBuilder() { Title = "뽑기 결과!", Color = GetRandomColor() }
+            .AddField("결과", $"||{Members[n].Value.Mention}||").Build());
         }
     }
 }

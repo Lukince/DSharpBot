@@ -64,10 +64,10 @@ namespace DiscordBot.Configs
             return output.TrimEnd();
         }
 
-        public static bool Contains(this ulong[] ul, ulong content)
+        public static bool Contains<T>(this T[] ts, T t)
         {
-            foreach (ulong u in ul)
-                if (u == content)
+            foreach (T tt in ts)
+                if (tt.Equals(t))
                     return true;
             return false;
         }

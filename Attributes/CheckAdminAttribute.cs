@@ -11,12 +11,12 @@ namespace DiscordBot.Attributes
 {
     class CheckAdminAttribute : CheckBaseAttribute
     {
-        public override Task<bool> CanExecute(CommandContext ctx, bool help)
+        public override Task<bool> ExecuteCheckAsync(CommandContext ctx, bool help)
         {
             if (ctx.Guild == null)
                 return Task.FromResult(false);
 
-            if (ctx.Client.CurrentApplication.Owner == ctx.User)
+            if (ctx.Client.CurrentApplication.Owners.First() == ctx.User)
                 return Task.FromResult(true);
 
             CheckBaseAttribute check = new CheckAttribute();

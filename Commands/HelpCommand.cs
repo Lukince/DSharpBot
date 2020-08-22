@@ -91,7 +91,7 @@ namespace DiscordBot.Commands
         }
     }
 
-    class HelpCommand
+    class HelpCommand : BaseCommandModule
     {
         [Command("도움말"), Aliases(new string[] { "도움", "?", "help" })]
         public async Task Help(CommandContext ctx, int page = -714576)
@@ -152,7 +152,7 @@ namespace DiscordBot.Commands
 
             Console.WriteLine("Finish!");
 
-            var interactivity = ctx.Client.GetInteractivityModule();
+            var interactivity = ctx.Client.GetInteractivity();
 
             try
             {
@@ -160,7 +160,7 @@ namespace DiscordBot.Commands
                 {
                     for (int i = 0; i < MaxPage - 1; i++)
                     {
-                        if (l == DiscordEmoji.FromName(ctx.Client, Numbers[i]))
+                        if (l.Emoji == DiscordEmoji.FromName(ctx.Client, Numbers[i]))
                         {
                             page = i;
                             return true;

@@ -17,7 +17,7 @@ using DiscordBot.Configs;
 namespace DiscordBot.Commands
 {
     [BlackList, Group("영단어")]
-    class EnglishWord
+    class EnglishWord : BaseCommandModule
     {
         private static readonly Random rnd = new Random();
         private static readonly string WordListPath = "Data/EnglishWord.dat";
@@ -129,7 +129,7 @@ namespace DiscordBot.Commands
 
             await ctx.RespondAsync(embed: ShowTestList.Build());
 
-            var interactivity = ctx.Client.GetInteractivityModule();
+            var interactivity = ctx.Client.GetInteractivity();
             var answer = await interactivity.WaitForMessageAsync(l =>
                 l.Author == ctx.User && l.Channel == ctx.Channel);
 
@@ -243,8 +243,8 @@ namespace DiscordBot.Commands
 
                 while (true)
                 {
-                    var interactivity = ctx.Client.GetInteractivityModule();
-                    var reaction = await interactivity.WaitForReactionAsync(l => Emoji.Contains(l), ctx.User);
+                    var interactivity = ctx.Client.GetInteractivity();
+                    var reaction = (await interactivity.WaitForReactionAsync(l => Emoji.Contains(l.Emoji), ctx.User)).Result;
 
                     if (reaction != null)
                     {
@@ -272,19 +272,19 @@ namespace DiscordBot.Commands
                             int value;
                             while (true)
                             {
-                                var context = await interactivity.WaitForMessageAsync(l =>
-                                    int.TryParse(l.Content, out int result) && l.Author == ctx.User && l.Channel == ctx.Channel);
+                                var context = (await interactivity.WaitForMessageAsync(l =>
+                                    int.TryParse(l.Content, out int result) && l.Author == ctx.User && l.Channel == ctx.Channel)).Result;
 
-                                if (context != null && word.Count >= int.Parse(context.Message.Content))
+                                if (context != null && word.Count >= int.Parse(context.Content))
                                 {
-                                    try { await context.Message.DeleteAsync(); }
+                                    try { await context.DeleteAsync(); }
                                     catch (Exception) { }
                                     try { await message.DeleteAsync(); }
                                     catch (Exception) { }
-                                    value = int.Parse(context.Message.Content);
+                                    value = int.Parse(context.Content);
                                     break;
                                 }
-                                else if (context != null && word.Count < int.Parse(context.Message.Content))
+                                else if (context != null && word.Count < int.Parse(context.Content))
                                     await ctx.RespondAsync($"{word.Count} 보다 같거나 작아야 합니다!");
                                 else
                                     await ctx.RespondAsync("숫자를 입력해 주세요");
@@ -390,8 +390,8 @@ namespace DiscordBot.Commands
 
                 while (true)
                 {
-                    var interactivity = ctx.Client.GetInteractivityModule();
-                    var reaction = await interactivity.WaitForReactionAsync(l => Emoji.Contains(l), ctx.User);
+                    var interactivity = ctx.Client.GetInteractivity();
+                    var reaction = (await interactivity.WaitForReactionAsync(l => Emoji.Contains(l.Emoji), ctx.User)).Result;
 
                     if (reaction != null)
                     {

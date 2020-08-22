@@ -12,7 +12,7 @@ namespace DiscordBot.Attributes
 {
     class CheckFirstHelpAttribute : CheckBaseAttribute
     {
-        public override Task<bool> CanExecute(CommandContext ctx, bool help)
+        public override Task<bool> ExecuteCheckAsync(CommandContext ctx, bool help)
         {
             return Task.FromResult(true);
         }

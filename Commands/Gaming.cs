@@ -21,7 +21,7 @@ using static DSharpPlus.Entities.DiscordEmbedBuilder;
 namespace DiscordBot
 {
     [BlackList, AccountCheck]
-    class Gaming
+    class Gaming : BaseCommandModule
     {
         public string[,] ResetBoard(string[,] PlayBoard)
         {
@@ -96,7 +96,7 @@ namespace DiscordBot
                     {
                         Title = "큐브 여는 중...",
                         Color = RandomColor[rnd.Next(0, RandomColor.Length - 1)],
-                        ThumbnailUrl = "https://i.imgur.com/NbqU7wO.png"
+                        Thumbnail = new EmbedThumbnail { Url = "https://i.imgur.com/NbqU7wO.png" }
                     };
 
                     ui.Cube -= 1;
@@ -134,7 +134,7 @@ namespace DiscordBot
                     {
                         Title = "큐브를 열었어요!",
                         Color = RandomColor[rnd.Next(0, RandomColor.Length - 1)],
-                        ThumbnailUrl = "https://i.imgur.com/pYhK9Ct.png"
+                        Thumbnail = new EmbedThumbnail { Url = "https://i.imgur.com/pYhK9Ct.png" }
                     };
 
                     if (ui.CubeTimeHour == 3)
@@ -184,37 +184,9 @@ namespace DiscordBot
                     await ctx.RespondAsync("큐브가 등록되지 않았어요! `라히야 큐브 오픈`으로 큐브를 열어봐요");
                 }
             }
-            [Command("상점")]
+            [Command("상점"), DoNotUse]
             public async Task CubeShop(CommandContext ctx)
             {
-                await ctx.RespondAsync("아직 개발중이에요! 조금만 기다려 주세요!");
-
-                DiscordEmbedBuilder dmb = new DiscordEmbedBuilder
-                {
-                    Color = RandomColor[rnd.Next(0, RandomColor.Length - 1)]
-                };
-                dmb.AddField("큐브 1개", "1 코인");
-
-                var msg = await ctx.RespondAsync($"라히의 상점이예요!\n```이모지를 클릭하면 상품 목록을 열어드릴게요!\n1. 큐브상점 2. 포션상점 3. 업그레이드```");
-
-                var interactivity = ctx.Client.GetInteractivityModule();
-                var reactions = interactivity.CollectReactionsAsync(msg, TimeSpan.FromMinutes(1)).ConfigureAwait(false).GetAwaiter().GetResult();
-
-                foreach (DiscordEmoji de in reactions.Reactions.Keys)
-                {
-                    if (de.Name == ":one:")
-                    {
-
-                    }
-                    else if (de.Name == ":two:")
-                    {
-
-                    }
-                    else if (de.Name == ":three:")
-                    {
-
-                    }
-                }
             }
         }
 
@@ -253,11 +225,11 @@ namespace DiscordBot
                 {
                     DiscordEmoji emoji = DiscordEmoji.FromName(ctx.Client, ":mag:");
 
-                    var interactivity = ctx.Client.GetInteractivityModule();
+                    var interactivity = ctx.Client.GetInteractivity();
                     var msg = await ctx.RespondAsync("행운의 선물이 도착했어요! 밑에 이모지로 반응하여 열어볼까요?");
                     await msg.CreateReactionAsync(emoji);
 
-                    var reactions = await interactivity.WaitForReactionAsync(x => x == emoji, ctx.User, TimeSpan.FromSeconds(60)).ConfigureAwait(false);
+                    var reactions = (await interactivity.WaitForReactionAsync(x => x.Emoji == emoji, ctx.User, TimeSpan.FromSeconds(60))).Result;
 
                     if (reactions != null)
                     {
@@ -318,15 +290,14 @@ namespace DiscordBot
                 "```Result Board```");
 
         GetInput:
-            var interactivity = ctx.Client.GetInteractivityModule();
-            var input = interactivity.WaitForMessageAsync(l => l.Channel == ctx.Channel && l.Author == ctx.User, TimeSpan.FromSeconds(60));
+            var interactivity = ctx.Client.GetInteractivity();
+            var input = (await interactivity.WaitForMessageAsync(l => l.Channel == ctx.Channel && l.Author == ctx.User, TimeSpan.FromSeconds(60))).Result;
 
             try
             {
                 if (input != null)
                 {
-                    var put = input.GetAwaiter().GetResult();
-                    string[] content = put.Message.Content.Split(' ');
+                    string[] content = input.Content.Split(' ');
                     //await put.Message.DeleteAsync();
                     int[] inputs = new int[3];
                     int[] sb = new int[2] { 0, 0 };
@@ -469,7 +440,7 @@ namespace DiscordBot
             string board = $"{PlayBoard[0, 0] + PlayBoard[0, 1] + PlayBoard[0, 2]}\n{PlayBoard[1, 0] + PlayBoard[1, 1] + PlayBoard[1, 2]}\n{PlayBoard[2, 0] + PlayBoard[2, 1] + PlayBoard[2, 2]}";
             var PlayMessage = await ctx.RespondAsync($"{board}\n번호만 적어주세요!");
 
-            var interactivity = ctx.Client.GetInteractivityModule();
+            var interactivity = ctx.Client.GetInteractivity();
 
             //string[] emojis = { ":one:", ":two:", ":three:", ":four:", ":five:", ":six:", ":seven:", ":eight:", ":nine:" };
 
@@ -555,9 +526,9 @@ namespace DiscordBot
                 await Task.Delay(1000);
             }
 
-            var interactivity = ctx.Client.GetInteractivityModule();
-            var reactions = await interactivity.WaitForReactionAsync(l =>
-                l == rsp[0] || l == rsp[1] || l == rsp[2], ctx.User, TimeSpan.FromSeconds(10));
+            var interactivity = ctx.Client.GetInteractivity();
+            var reactions = (await interactivity.WaitForReactionAsync(l =>
+                l .Emoji== rsp[0] || l.Emoji == rsp[1] || l.Emoji == rsp[2], ctx.User, TimeSpan.FromSeconds(10))).Result;
 
             DiscordEmbedBuilder dmb = new DiscordEmbedBuilder
             {
@@ -646,13 +617,13 @@ namespace DiscordBot
                 await msg.CreateReactionAsync(emojistop);
                 await msg.CreateReactionAsync(emojiright);
 
-                var interactivity = ctx.Client.GetInteractivityModule();
+                var interactivity = ctx.Client.GetInteractivity();
 
                 Again:
 
-                var reactions = await interactivity.WaitForReactionAsync(l => l == emojileft || l == emojiright || l == emojistop,
+                var reactions = (await interactivity.WaitForReactionAsync(l => l.Emoji == emojileft || l.Emoji == emojiright || l.Emoji == emojistop,
                     ctx.User,
-                    TimeSpan.FromMinutes(5));
+                    TimeSpan.FromMinutes(5))).Result;
 
                 if (reactions != null)
                 {
@@ -815,9 +786,9 @@ namespace DiscordBot
             while (true)
             {
                 DiscordEmoji[] RandomEmojis = await RandomReactionCreate(message: Gaming, emojis: EBallsArray);
-                var interactivity = ctx.Client.GetInteractivityModule();
-                var reactions = await interactivity.WaitForReactionAsync(l =>
-                        RandomEmojis.Contains(l), GameUser, TimeSpan.FromSeconds(30));
+                var interactivity = ctx.Client.GetInteractivity();
+                var reactions = (await interactivity.WaitForReactionAsync(l =>
+                        RandomEmojis.Contains(l.Emoji), GameUser, TimeSpan.FromSeconds(30))).Result;
 
                 if (reactions != null)
                 {

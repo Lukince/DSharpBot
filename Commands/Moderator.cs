@@ -10,7 +10,7 @@ using DSharpPlus.Entities;
 
 namespace DiscordBot
 {
-    public class Moderator 
+    public class Moderator : BaseCommandModule
     {
         [Command("밴")]
         public async Task Ban(CommandContext ctx, DiscordUser mention, params string[] context)

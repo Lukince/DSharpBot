@@ -13,10 +13,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Scripting.Actions;
+using DiscordBot.Configs;
 
 namespace DiscordBot
 {
-    class Variable
+    public class Variable
     {
         private static Random rnd = new Random();
 
@@ -92,7 +93,7 @@ namespace DiscordBot
 
             var webhook = ctx.Client.GetWebhookAsync(716214815634227252).GetAwaiter().GetResult();
 
-            await webhook.ExecuteAsync($"{ctx.Message.Content}\n{err}");
+            await webhook.ExecuteAsync(new DiscordWebhookBuilder { Content = $"{ctx.Message.Content}\n{err}" });
         }
 
         public static string[] Numbers =
@@ -296,20 +297,32 @@ namespace DiscordBot
         public static DiscordColor GetRandomColor() =>
             new DiscordColor(rnd.Next(0, 16777215));
 
-        public static string GetDate(TimeSpan subtime)
+        public static string GetDate(TimeSpan subtime, bool eng = false)
         {
+            string[] Kr = { "일", "시간", "분", "초" };
+            string[] En = { "d", "h", "m", "s" };
+
+            string[] current;
+
+            if (eng)
+                current = En;
+            else
+                current = Kr;
+
             string date = string.Empty;
 
             if (subtime.Days != 0)
-                date += $"{subtime.Days}일 ";
+                date += $"{subtime.Days}{current[0]} ";
 
             if (subtime.Hours != 0)
-                date += $"{subtime.Hours}시간 ";
+                date += $"{subtime.Hours}{current[1]} ";
 
             if (subtime.Minutes != 0)
-                date += $"{subtime.Minutes}분 ";
+                date += $"{subtime.Minutes}{current[2]} ";
 
-            date += $"{subtime.Seconds}초";
+            date += $"{subtime.Seconds}{current[3]}";
+            if (eng)
+                date += $" {subtime.Ticks} ticks";
 
             return date;
         }
@@ -325,7 +338,32 @@ namespace DiscordBot
             }.AddField("Content", content);
 
             await ctx.RespondAsync("처리되었습니다!");
-            await webhook.ExecuteAsync(embeds: new DiscordEmbed[] { WebhookEmbed.Build() });
+            await webhook.ExecuteAsync(new DiscordWebhookBuilder().AddEmbed(WebhookEmbed.Build()));
+        }
+
+        public async Task SaveGuildInfo(DiscordGuild Guild)
+        {
+            string GuildPath = $"Guilds/u{Guild.Id}/";
+            if (!Directory.Exists(GuildPath))
+                Directory.CreateDirectory(GuildPath);
+
+            var Channels = (await Guild.GetChannelsAsync()).ToArray();
+            var Members = (await Guild.GetAllMembersAsync()).ToArray();
+            var Roles = Guild.Roles.ToArray();
+            var Emojis = (await Guild.GetEmojisAsync()).ToArray();
+            var Invites = (await Guild.GetInvitesAsync()).ToArray();
+
+            SaveFile(Channels); SaveFile(Members); SaveFile(Roles); SaveFile(Emojis); SaveFile(Invites);
+
+            void SaveFile(dynamic type)
+            {
+                List<string> output = new List<string>();
+                foreach (var t in type)
+                    output.Add(t.ToString());
+                string s = GuildPath + Extensions.DeleteString(type.GetType().Name, "[]");
+                File.Create(s).Close();
+                File.WriteAllLines(s, output.ToArray());
+            }
         }
     }
 }

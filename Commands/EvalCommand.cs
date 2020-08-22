@@ -10,15 +10,18 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static DSharpPlus.Entities.DiscordEmbedBuilder;
+using static DiscordBot.Variable;
 
 namespace DiscordBot.Commands
 {
-    class EvalCommand // : BaseCommandModule
+    class EvalCommand : BaseCommandModule
     {
         [Command("Eval"), Description("Evaluates C# code."), Hidden, CheckAdmin]
         public async Task EvalCS(CommandContext ctx, [RemainingText] string code)
         {
             var msg = ctx.Message;
+            var starttime = DateTime.Now;
 
             var cs1 = code.IndexOf("```") + 3;
             cs1 = code.IndexOf('\n', cs1) + 1;
@@ -47,9 +50,9 @@ namespace DiscordBot.Commands
                 var result = await script.RunAsync(globals).ConfigureAwait(false);
 
                 if (result != null && result.ReturnValue != null && !string.IsNullOrWhiteSpace(result.ReturnValue.ToString()))
-                    await msg.ModifyAsync(embed: new DiscordEmbedBuilder { Title = "Evaluation Result", Description = result.ReturnValue.ToString(), Color = new DiscordColor("#007FFF") }.Build()).ConfigureAwait(false);
+                    await msg.ModifyAsync(embed: new DiscordEmbedBuilder { Title = "Evaluation Result", Description = result.ReturnValue.ToString(), Color = new DiscordColor("#007FFF"), Footer = new EmbedFooter() { Text = GetDate(DateTime.Now.Subtract(starttime), true) } }.Build()).ConfigureAwait(false);
                 else
-                    await msg.ModifyAsync(embed: new DiscordEmbedBuilder { Title = "Evaluation Successful", Description = "No result was returned.", Color = new DiscordColor("#007FFF") }.Build()).ConfigureAwait(false);
+                    await msg.ModifyAsync(embed: new DiscordEmbedBuilder { Title = "Evaluation Successful", Description = "No result was returned.", Color = new DiscordColor("#007FFF"), Footer = new EmbedFooter() { Text = GetDate(DateTime.Now.Subtract(starttime), true) } }.Build()).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

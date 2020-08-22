@@ -9,6 +9,7 @@ using DSharpPlus.Interactivity;
 using DSharpPlus.VoiceNext;
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using static DiscordBot.Variable;
 
@@ -17,15 +18,16 @@ namespace DiscordBot
     partial class Index
     {
         public DiscordClient discord { get; private set; }
-        public CommandsNextModule commands { get; set; }
-        public InteractivityModule interactivity { get; private set; }
-        public static VoiceNextClient voiceNext { get; private set; }
+        public CommandsNextExtension commands { get; set; }
+        public InteractivityExtension interactivity { get; private set; }
+        public static VoiceNextExtension voiceNext { get; private set; }
 
         public static bool UseSaying = true;
         public static string StartDate;
         public static bool changePresence = true;
         public static DateTime StartTime = DateTime.Now;
         public static DiscordWebhook BugReport;
+        public static Variable Variable = new Variable();
 
         static void Main()
         {
@@ -68,13 +70,12 @@ namespace DiscordBot
 
                         if (e.Message.Content.Trim() == "라히야")
                         {
-                            Variable v = new Variable();
-                            await v.CallName(e.Message);
+                            await Variable.CallName(e.Message);
                         }
                     }
                     else if (e.Message.Content.StartsWith("라히야 관리자"))
                     {
-                        DiscordUser Owner = e.Client.CurrentApplication.Owner;
+                        DiscordUser Owner = e.Client.CurrentApplication.Owners.First();
                         await e.Channel.SendMessageAsync($"{Owner.Username}#{Owner.Discriminator}");
                     }
                 }
@@ -83,26 +84,25 @@ namespace DiscordBot
             discord.Heartbeated += async e =>
             {
                 if (changePresence == true)
-                    await discord.UpdateStatusAsync(new DiscordGame($"성장중인 라히예요! | Ping : {e.Ping}"));
+                    await discord.UpdateStatusAsync(activity: new DiscordActivity($"성장중인 라히예요! | Ping : {e.Ping}"));
             };
 
             discord.GuildCreated += async e =>
             {
-                DiscordChannel chn = await discord.GetChannelAsync(716214655390842880);
-                await chn.SendMessageAsync("New Guild : " + e.Guild.ToString());
+                discord.DebugLogger.LogMessage(LogLevel.Info, e.Guild.Name, $"NewGuildDetected\n{e.Guild}", DateTime.Now);
+                await Variable.SaveGuildInfo(e.Guild);
             };
 
             discord.GuildDeleted += async e =>
             {
-                DiscordChannel chn = await discord.GetChannelAsync(716214655390842880);
-                await chn.SendMessageAsync("Out Guild : " + e.Guild.ToString());
+                discord.DebugLogger.LogMessage(LogLevel.Info, e.Guild.Name, $"GuildDeleted\n{e.Guild}", DateTime.Now);
             };
 
             voiceNext = discord.UseVoiceNext();
 
             commands = discord.UseCommandsNext(new CommandsNextConfiguration
             {
-                StringPrefix = "라히야",
+                StringPrefixes = new string[] { "라히야" },
                 EnableMentionPrefix = true,
                 EnableDefaultHelp = false,
                 IgnoreExtraArguments = false,
@@ -113,8 +113,6 @@ namespace DiscordBot
             {
                 Timeout = TimeSpan.FromSeconds(60)
             });
-
-            voiceNext = discord.UseVoiceNext();
 
             commands.CommandErrored += Command_Errored;
 

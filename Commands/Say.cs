@@ -30,7 +30,7 @@ namespace DiscordBot.Commands
     }
 
     [BlackList]
-    class Say
+    class Say : BaseCommandModule
     {
         [Command("단어추가")]
         public async Task WordAdd(CommandContext ctx, string word, params string[] description)
@@ -83,8 +83,8 @@ namespace DiscordBot.Commands
             await msg.CreateReactionAsync(DiscordEmoji.FromGuildEmote(ctx.Client, GetEmoji("Correct")));
             await msg.CreateReactionAsync(DiscordEmoji.FromGuildEmote(ctx.Client, GetEmoji("NotCorrect")));
 
-            var interactivity = ctx.Client.GetInteractivityModule();
-            var reactions = await interactivity.WaitForReactionAsync(l => l.Id == GetEmoji("Correct") || l.Id == GetEmoji("NotCorrect"), ctx.User);
+            var interactivity = ctx.Client.GetInteractivity();
+            var reactions = (await interactivity.WaitForReactionAsync(l => l.Emoji.Id == GetEmoji("Correct") || l.Emoji.Id == GetEmoji("NotCorrect"), ctx.User)).Result;
 
             if (reactions != null)
             {

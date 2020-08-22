@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace DiscordBot
 {
     [BlackList()]
-    public class Account
+    public class Account : BaseCommandModule
     {
         public static string IdLocation = $"Account/";
 
@@ -85,10 +85,10 @@ namespace DiscordBot
             {
                 DiscordEmoji emoji = DiscordEmoji.FromName(ctx.Client, ":white_check_mark:");
 
-                var interactivity = ctx.Client.GetInteractivityModule();
+                var interactivity = ctx.Client.GetInteractivity();
                 var msg = await ctx.RespondAsync("탈퇴를 원하시면 :white_check_mark:를 눌러주세요 (30초)");
                 await msg.CreateReactionAsync(emoji);
-                var reactions = await interactivity.WaitForReactionAsync(x => x == emoji, ctx.User, TimeSpan.FromSeconds(30));
+                var reactions = (await interactivity.WaitForReactionAsync(x => x.Emoji == emoji, ctx.User, TimeSpan.FromSeconds(30))).Result;
 
                 if (reactions != null)
                 {
