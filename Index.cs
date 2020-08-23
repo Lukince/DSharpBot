@@ -6,6 +6,7 @@ using DSharpPlus.CommandsNext.Exceptions;
 //using DSharpPlus.CommandsNext.Exceptions;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity;
+using DSharpPlus.Lavalink;
 using DSharpPlus.VoiceNext;
 using System;
 using System.IO;
@@ -21,6 +22,7 @@ namespace DiscordBot
         public CommandsNextExtension commands { get; set; }
         public InteractivityExtension interactivity { get; private set; }
         public static VoiceNextExtension voiceNext { get; private set; }
+        public static LavalinkExtension lavalink { get; private set; }
 
         public static bool UseSaying = true;
         public static string StartDate;
@@ -98,7 +100,12 @@ namespace DiscordBot
                 discord.DebugLogger.LogMessage(LogLevel.Info, e.Guild.Name, $"GuildDeleted\n{e.Guild}", DateTime.Now);
             };
 
-            voiceNext = discord.UseVoiceNext();
+            voiceNext = discord.UseVoiceNext(new VoiceNextConfiguration()
+            {
+                EnableIncoming = true
+            });
+
+            lavalink = discord.UseLavalink();
 
             commands = discord.UseCommandsNext(new CommandsNextConfiguration
             {

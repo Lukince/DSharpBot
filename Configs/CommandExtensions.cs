@@ -5,6 +5,7 @@ using DSharpPlus.CommandsNext;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System;
+using System.Threading;
 
 namespace DiscordBot.Configs
 {
@@ -70,6 +71,21 @@ namespace DiscordBot.Configs
                 if (tt.Equals(t))
                     return true;
             return false;
+        }
+
+        public static void Add(this Dictionary<DiscordGuild, CancellationToken[]> Queue, DiscordGuild guild, CancellationToken token)
+        {
+            if (Queue.ContainsKey(guild))
+            {
+                List<CancellationToken> tokens = new List<CancellationToken>();
+
+                foreach (var t in Queue[guild])
+                    tokens.Add(t);
+                tokens.Add(token);
+                Queue[guild] = tokens.ToArray();
+            }
+            else
+                Queue.Add(guild, new CancellationToken[] { token });
         }
     }
 }
