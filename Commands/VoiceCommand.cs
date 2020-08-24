@@ -1,9 +1,13 @@
 ﻿using DiscordBot.Attributes;
 using DiscordBot.Configs;
+using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
+using DSharpPlus.Interactivity;
 using DSharpPlus.VoiceNext;
+using Google.Apis.Services;
+using Google.Apis.YouTube.v3;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -13,13 +17,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using VideoLibrary;
-using Google.Apis.YouTube.v3;
-using Google.Apis.Services;
-using System.Security.Policy;
-using DSharpPlus.Interactivity;
 using static DiscordBot.Variable;
-using DSharpPlus;
-using DSharpPlus.CommandsNext.Converters;
 
 namespace DiscordBot.Commands
 {
@@ -154,8 +152,23 @@ namespace DiscordBot.Commands
             web.DownloadFile(url, path);
         }
 
+        [Command("DownloadYoutube")]
+        public async Task DownloadYoutube(CommandContext ctx, [RemainingText] string uri)
+        {
+            if (!Uri.TryCreate(uri, UriKind.Absolute, out Uri _))
+                throw new ArgumentException("Not Url");
+
+            YouTube you = YouTube.Default;
+            Video video = await you.GetVideoAsync(uri);
+            string videopath = $"Youtube/{video.FullName}";
+            var msg = await ctx.RespondAsync("Wait for downloading...");
+            if (!File.Exists(videopath))
+                await File.WriteAllBytesAsync(videopath, await video.GetBytesAsync());
+            await msg.ModifyAsync($"Download Finish : {video.Title}");
+        }
+
         [Command("Youtube")]
-        public async Task Youtube(CommandContext ctx, string search)
+        public async Task Youtube(CommandContext ctx, [RemainingText] string search)
         {
             string url = null;
             if (Uri.TryCreate(search, UriKind.Absolute, out Uri _))
@@ -175,14 +188,14 @@ namespace DiscordBot.Commands
                 var result = await request.ExecuteAsync();
 
                 string resultstring = string.Empty;
-                Dictionary<string, string> searchresult = new Dictionary<string, string>();
+                List<Tuple<string, string>> searchresult = new List<Tuple<string, string>>();
 
                 foreach (var r in result.Items)
                     if (r.Id.Kind == "youtube#video")
                     {
                         resultstring +=
                             $"{Formatter.MaskedUrl(r.Snippet.Title, new Uri("http://youtube.com/watch?v=" + r.Id.VideoId))}\n";
-                        searchresult.Add(r.Snippet.Title, r.Id.VideoId);
+                        searchresult.Add(new Tuple<string, string>(r.Snippet.Title, r.Id.VideoId));
                     }
 
                 string[] s = { "p1", "p2", "p3", "p4", "p5" };
@@ -202,10 +215,10 @@ namespace DiscordBot.Commands
 
                 if (answer != null)
                 {
-                    var ids = searchresult.Values.ToArray();
+                    var ids = searchresult.ToArray();
                     var n = int.Parse(answer.Content.Substring(1)) - 1;
 
-                    url = $"http://youtube.com/watch?v={ids[n]}";
+                    url = $"http://youtube.com/watch?v={ids[n].Item2}";
                 }
             }
 
@@ -217,6 +230,62 @@ namespace DiscordBot.Commands
                 await File.WriteAllBytesAsync(videopath, await video.GetBytesAsync());
             await msg.ModifyAsync($"Play {video.Title}");
             await this.Play(ctx, videopath);
+        }
+
+        [Command("Search")]
+        public async Task Search(CommandContext ctx, [RemainingText] string search)
+        {
+            string url = null;
+            if (Uri.TryCreate(search, UriKind.Absolute, out Uri _))
+                url = search;
+            else
+            {
+                var youtube = new YouTubeService(new BaseClientService.Initializer()
+                {
+                    ApiKey = Config.GoogleToken,
+                    ApplicationName = "Youtube Search"
+                });
+
+                var request = youtube.Search.List("snippet");
+                request.Q = search;
+                request.MaxResults = 5;
+
+                var result = await request.ExecuteAsync();
+
+                string resultstring = string.Empty;
+                List<Tuple<string, string>> searchresult = new List<Tuple<string, string>>();
+
+                foreach (var r in result.Items)
+                    if (r.Id.Kind == "youtube#video")
+                    {
+                        resultstring +=
+                            $"{Formatter.MaskedUrl(r.Snippet.Title, new Uri("http://youtube.com/watch?v=" + r.Id.VideoId))}\n";
+                        searchresult.Add(new Tuple<string, string>(r.Snippet.Title, r.Id.VideoId));
+                    }
+
+                string[] s = { "p1", "p2", "p3", "p4", "p5" };
+
+                DiscordEmbedBuilder SelectNumberEmbed = new DiscordEmbedBuilder()
+                {
+                    Title = $"Search Result : {search}",
+                    Footer = GetFooter(ctx),
+                    Color = DiscordColor.Red
+                }.WithDescription(resultstring);
+                await ctx.RespondAsync(embed: SelectNumberEmbed);
+                await ctx.RespondAsync("Select Number ex) p3");
+
+                var interactivity = ctx.Client.GetInteractivity();
+                var answer = (await interactivity.WaitForMessageAsync(l =>
+                l.Author == ctx.User && l.Channel == ctx.Channel && s.Contains(l.Content))).Result;
+
+                if (answer != null)
+                {
+                    var ids = searchresult.ToArray();
+                    var n = int.Parse(answer.Content.Substring(1)) - 1;
+
+                    await ctx.RespondAsync($"http://youtube.com/watch?v={ids[n].Item2}");
+                }
+            }
         }
 
         //[Command("Skip")]
