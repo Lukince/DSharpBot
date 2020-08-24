@@ -16,6 +16,15 @@ namespace DiscordBot.Configs
             var user = await ctx.Guild.GetMemberAsync(id);
             return await user.SendMessageAsync(content, embed: embed);
         }
+
+        public async Task CreateReactionsAsync(DiscordMessage msg, DiscordEmoji[] emojis, int waitTime = 0)
+        {
+            foreach (var emoji in emojis)
+            {
+                await msg.CreateReactionAsync(emoji);
+                await Task.Delay(waitTime);
+            }
+        }
     }
 
     public static class Extensions
