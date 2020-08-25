@@ -9,13 +9,19 @@ using System.Threading.Tasks;
 using Abot2.Crawler;
 using Abot2.Poco;
 using System.IO;
+using System.Xml;
+using System.Xml.Linq;
+using HtmlAgilityPack;
+using DSharpPlus.Entities;
+using DiscordBot.Attributes;
 
 namespace DiscordBot.Commands
 {
+    [CheckAdmin]
     class Search : BaseCommandModule
     {
         [Command("msdc")]
-        public async Task MSDCSearch(CommandContext ctx, string type, string version, string content)
+        public async Task<string> MSDCSearch(CommandContext ctx, string type, string version, string content)
         {
             Dictionary<string, string[]> versions = new Dictionary<string, string[]>()
             {
@@ -89,7 +95,32 @@ namespace DiscordBot.Commands
             Uri uri = new Uri(url);
 
             await crawler.CrawlAsync(uri);
-            await ctx.RespondWithFileAsync(fileName: $"CrawlingData/{content}.html", new FileStream($"CrawlingData/{content}.html", FileMode.Open));
+            await ctx.RespondWithFileAsync(fileName: $"CrawlingData/{content}.html", new FileStream($"CrawlingData/{content}.html", FileMode.Open), content: url);
+            return $"CrawlingData/{content}.html";
+        }
+
+        [Command("ReadXml")]
+        public async Task ReadXml(CommandContext ctx, string uri)
+        {
+            XDocument doc = XDocument.Load(uri);
+            var allElements = doc.Descendants().ToArray();
+
+            await File.WriteAllTextAsync("Data/Test.txt", allElements.ToString());
+        }
+
+        [Command("ReadHtml")]
+        public async Task ReadHtml(CommandContext ctx, string uri)
+        {
+            HtmlDocument html = new HtmlDocument();
+            var web = new HtmlWeb();
+            html = web.Load(uri);
+            var Elements = html.DocumentNode.Descendants();
+
+            var toftitle = Elements.Where(l => l.Name == "div" && l.Attributes["class"] != null
+            && l.Attributes["class"].Value.Contains("block_content")).ToArray();
+
+            //await File.WriteAllTextAsync("Data/Test.txt");
+            await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":white_check_mark:"));
         }
     }
 }

@@ -6,9 +6,11 @@ using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity;
 using DSharpPlus.VoiceNext;
+using DSharpPlus.VoiceNext.EventArgs;
 using Google.Apis.Services;
 using Google.Apis.YouTube.v3;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -26,6 +28,8 @@ namespace DiscordBot.Commands
     {
         public int CurrentPlayQueue = -1;
         public Dictionary<DiscordGuild, CancellationToken[]> Queue = new Dictionary<DiscordGuild, CancellationToken[]>();
+        private ConcurrentDictionary<uint, Process> ffmpegs;
+        public Dictionary<DiscordGuild, CancellationToken> Cancel = new Dictionary<DiscordGuild, CancellationToken>();
 
         [Command("Join")]
         public async Task Join(CommandContext ctx, DiscordChannel channel = null)
@@ -35,20 +39,93 @@ namespace DiscordBot.Commands
             if (ctx.Member.VoiceState?.Channel == null)
                 throw new InvalidOperationException("You're not in any voice channel");
 
-            await vnext.ConnectAsync(channel ?? ctx.Member.VoiceState.Channel);
+            var vnc = await vnext.ConnectAsync(channel ?? ctx.Member.VoiceState.Channel);
+
+            this.ffmpegs = new ConcurrentDictionary<uint, Process>();
+            //vnc.VoiceReceived += OnVoiceReceived;
+            vnc.UserLeft += OnUserLeft;
+            vnc.UserJoined += OnUserJoined;
             await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":ok_hand:"));
+        }
+
+        private async Task OnUserJoined(VoiceUserJoinEventArgs e)
+        {
+            var vnext = e.Client.GetVoiceNext();
+            VoiceNextConnection vnc;
+            foreach (var guild in e.Client.Guilds.Values)
+            {
+                if ((vnc = vnext.GetConnection(guild)) != null)
+                {
+                    if (Cancel.ContainsKey(guild) && vnc.Channel.Users.Count(l => !l.IsBot) > 0)
+                        Cancel[guild].ThrowIfCancellationRequested();
+                }
+            }    
+        }
+
+        private async Task OnUserLeft(VoiceUserLeaveEventArgs e)
+        {
+            var vnext = e.Client.GetVoiceNext();
+            CancellationToken token;
+            VoiceNextConnection vnc;
+            foreach (var guild in e.Client.Guilds.ToArray())
+            {
+                if ((vnc = vnext.GetConnection(guild.Value)) != null)
+                {
+                    token = new CancellationToken();
+                    if (vnc.Channel.Users.Count(l => !l.IsBot) == 0)
+                        await Task.Run(() =>
+                        {
+                            Cancel.Add(vnc.Channel.Guild, token);
+                            Task.Delay(TimeSpan.FromMinutes(5));
+                            Cancel.Remove(vnc.Channel.Guild);
+                            vnc.Disconnect();
+                        }, token);
+                }
+            }
+        }
+
+        private async Task OnVoiceReceived(VoiceReceiveEventArgs ea)
+        {
+            if (!this.ffmpegs.ContainsKey(ea.SSRC))
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "ffmpeg",
+                    Arguments = $@"-ac 2 -f s16le -ar 48000 -i pipe:0 -ac 2 -ar 44100 {ea.SSRC}.wav",
+                    RedirectStandardInput = true
+                };
+
+                this.ffmpegs.TryAdd(ea.SSRC, Process.Start(psi));
+            }
+
+            var buff = ea.PcmData.ToArray();
+
+            var ffmpeg = this.ffmpegs[ea.SSRC];
+            await ffmpeg.StandardInput.BaseStream.WriteAsync(buff, 0, buff.Length);
+
         }
 
         [Command("Leave")]
         public async Task Leave(CommandContext ctx, DiscordChannel channel = null)
         {
             var vnext = ctx.Client.GetVoiceNext();
-            var conn = vnext.GetConnection(ctx.Guild);
+            var vnc = vnext.GetConnection(ctx.Guild);
 
-            if (conn == null)
+            if (vnc == null)
                 throw new InvalidOperationException("No connection in this guild");
 
-            conn.Disconnect();
+            //vnc.VoiceReceived -= OnVoiceReceived;
+            vnc.UserLeft -= OnUserLeft;
+            vnc.UserJoined -= OnUserJoined;
+            foreach (var kvp in this.ffmpegs)
+            {
+                await kvp.Value.StandardInput.BaseStream.FlushAsync();
+                kvp.Value.StandardInput.Dispose();
+                kvp.Value.WaitForExit();
+            }
+            this.ffmpegs = null;
+
+            vnc.Disconnect();
             await ctx.Message.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":wave:"));
         }
 
