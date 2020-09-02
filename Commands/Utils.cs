@@ -27,6 +27,7 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using RyuaNerin;
 using static DiscordBot.Account;
 using static DiscordBot.Config;
 using static DiscordBot.Index;
@@ -1347,7 +1348,7 @@ namespace DiscordBot
         }
 
         [Command("랜덤유저")]
-        public async Task RandomUser(CommandContext ctx, params string[] _)
+        public async Task RandomUser(CommandContext ctx, [RemainingText] string _)
         {
             DiscordChannel channel;
             if (ctx.Message.MentionedChannels.Count == 0)
@@ -1359,6 +1360,41 @@ namespace DiscordBot
             var n = rnd.Next(0, Members.Count());
             await ctx.RespondAsync(embed: new DiscordEmbedBuilder() { Title = "뽑기 결과!", Color = GetRandomColor() }
             .AddField("결과", $"||{Members[n].Value.Mention}||").Build());
+        }
+
+        private static List<ulong> UsageUser = new List<ulong>();
+
+        [Command("한영")]
+        public async Task EngKor(CommandContext ctx)
+        {
+            if (UsageUser.Contains(ctx.Member.Id))
+            {
+                await Task.Delay(100);
+                await ctx.RespondAsync("종료되었습니다");
+                UsageUser.Remove(ctx.Member.Id);
+                return;
+            }
+
+            await ctx.RespondAsync("한영 변환 시작");
+            UsageUser.Add(ctx.Member.Id);
+            var interactivity = ctx.Client.GetInteractivity();
+
+            while (UsageUser.Contains(ctx.Member.Id))
+            {
+                var result = (await interactivity.WaitForMessageAsync(l =>
+                    l.Author == ctx.User && l.Channel == ctx.Channel)).Result;
+
+                if (result != null)
+                {
+                    if (!UsageUser.Contains(ctx.Member.Id))
+                        return;
+
+                    string kor;
+                    try { kor = EngHanConverter.Eng2Kor(result.Content); }
+                    catch (Exception) { await ctx.RespondAsync("에러 발생"); continue; }
+                    await ctx.RespondAsync(kor);
+                }
+            }
         }
     }
 }
