@@ -37,7 +37,7 @@ namespace DiscordBot
         }
 
         [Group("큐브"), BlackList, AccountCheck]
-        class CubeGame
+        class CubeGame : BaseCommandModule
         {
             [Command("갯수")]
             public async Task CubeCount(CommandContext ctx)

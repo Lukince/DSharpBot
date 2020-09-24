@@ -13,6 +13,7 @@ using System.Linq;
 using DiscordBot.Attributes;
 using System.Runtime.InteropServices.ComTypes;
 using Microsoft.Scripting.Actions;
+using System.Diagnostics;
 
 namespace DiscordBot
 {

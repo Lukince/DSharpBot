@@ -190,7 +190,7 @@ namespace DiscordBot.Commands
         }
 
         [Group("DataBase"), CheckAdmin, BlackList]
-        public class DataBase
+        public class DataBase : BaseCommandModule
         {
             [Command("Load")]
             public async Task LoadDataBase(CommandContext ctx)

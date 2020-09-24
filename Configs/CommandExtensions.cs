@@ -1,11 +1,10 @@
-﻿using System.Linq;
-using static DiscordBot.Index;
+﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
-using DSharpPlus.CommandsNext;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace DiscordBot.Configs
 {
@@ -36,7 +35,7 @@ namespace DiscordBot.Configs
             return output;
         }
 
-        public static string DeleteString(this string content, string[] Delstring)
+        public static string DeleteString(this string content, IEnumerable<string> Delstring)
         {
             string s = content;
             foreach (string d in Delstring)
@@ -45,7 +44,7 @@ namespace DiscordBot.Configs
             return s;
         }
 
-        public static string[] Combine(this string[] array1, string[] array2)
+        public static IEnumerable<string> Combine(this IEnumerable<string> array1, IEnumerable<string> array2)
         {
             List<string> output = new List<string>();
             foreach (string s in array1)
@@ -55,7 +54,7 @@ namespace DiscordBot.Configs
             return output.ToArray();
         }
 
-        public static T[] Map<T>(this T[] array, Func<T, T> func) //where T : IEnumerable<T>
+        public static T[] Map<T>(this IEnumerable<T> array, Func<T, T> func) //where T : IEnumerable<T>
         {
             List<T> list = new List<T>();
             foreach (T data in array)
@@ -74,14 +73,6 @@ namespace DiscordBot.Configs
             return output.TrimEnd();
         }
 
-        public static bool Contains<T>(this T[] ts, T t)
-        {
-            foreach (T tt in ts)
-                if (tt.Equals(t))
-                    return true;
-            return false;
-        }
-
         public static void Add(this Dictionary<DiscordGuild, CancellationToken[]> Queue, DiscordGuild guild, CancellationToken token)
         {
             if (Queue.ContainsKey(guild))
@@ -95,6 +86,28 @@ namespace DiscordBot.Configs
             }
             else
                 Queue.Add(guild, new CancellationToken[] { token });
+        }
+
+        public static string ToString(this Dictionary<string, Tuple<string, string>> dic, uint max = 0)
+        {
+            int m = (int)max;
+            if (max == 0)
+                m = dic.Count;
+
+            string str = string.Empty;
+
+            for (int i = 0; i < max; i++)
+                str += $"{dic.Keys.ToArray()[i]} : {dic.Values.ToArray()[i].Item1}\n";
+
+            return str[0..^1];
+        }
+
+        public static bool Contains(this string cnt, IEnumerable<string> values)
+        {
+            foreach (var value in values)
+                if (cnt.Contains(value))
+                    return true;
+            return false;
         }
     }
 }

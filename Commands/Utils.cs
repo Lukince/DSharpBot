@@ -686,7 +686,7 @@ namespace DiscordBot
         }
 
         [Group("암호"), BlackList]
-        class Security
+        class Security : BaseCommandModule
         {
             RSAEncryption rsa = new RSAEncryption();
             WithBase32 base32 = new WithBase32();
@@ -809,7 +809,7 @@ namespace DiscordBot
         }
 
         [Group("변환"),BlackList]
-        class Converts
+        class Converts : BaseCommandModule
         {
             [Group("색깔"), BlackList]
             class ConvertColor
@@ -877,7 +877,7 @@ namespace DiscordBot
                 }
 
                 [Group("이미지"), DoNotUse, BlackList]
-                class GetColorImage
+                class GetColorImage : BaseCommandModule
                 {
                     [Command("Web")]
                     public async Task Color_Image_Web(CommandContext ctx, string HexCode)
@@ -920,7 +920,7 @@ namespace DiscordBot
             }
 
             [Group("바이너리"), BlackList]
-            class Binary
+            class Binary : BaseCommandModule
             {
                 [Command("바이트")]
                 public async Task BinaryToString(CommandContext ctx, params string[] paramsByte)
@@ -1196,16 +1196,13 @@ namespace DiscordBot
             long number = n;
             List<long> list = new List<long>();
 
-            for (long i = 1; i <= number; i++)
+            var r = Parallel.For(1, number + 1, i =>
             {
-                if (number == i)
-                {
-                    list.Add(i);
-                    break;
-                }
                 if (number % i == 0)
                     list.Add(i);
-            }
+            });
+
+            while (true) { if (r.IsCompleted) break; }
 
             return list.ToArray();
         }
@@ -1215,16 +1212,13 @@ namespace DiscordBot
             int number = n;
             List<int> list = new List<int>();
 
-            for (int i = 1; i <= number; i++)
+            var r = Parallel.For(1, number + 1, i =>
             {
-                if (number == i)
-                {
-                    list.Add(i);
-                    break;
-                }
                 if (number % i == 0)
                     list.Add(i);
-            }
+            });
+
+            while (true) { if (r.IsCompleted) break; }
 
             return list.ToArray();
         }
@@ -1396,5 +1390,30 @@ namespace DiscordBot
                 }
             }
         }
+
+        /*
+        [Command("tts")]
+        public async Task TTS(CommandContext ctx, string lang [RemainingText] string contents)
+        {
+            using (SpeechSynthesizer s = new SpeechSynthesizer())
+            {
+                if (lang.Equals("ja"))
+                    s.SelectVoice("Microsoft Server Speech Text to Speech Voice (ja-JP, Haruka)");
+                else if (lang.Equals("en"))
+                    s.SelectVoice("Microsoft Server Speech Text to Speech Voice (en-US, ZiraPro)");
+                else if (lang.Equals("ko"))
+                    s.SelectVoice("Microsoft Server Speech Text to Speech Voice (ko-KR, Heami)");
+                else if (lang.Equals("zh"))
+                    s.SelectVoice("Microsoft Server Speech Text to Speech Voice (zh-CN, HuiHui)");
+                else
+                    throw new InvalidOperationException("");
+                string textfile = args[1];
+                string text = System.IO.File.ReadAllText(textfile, System.Text.Encoding.UTF8);
+                string wavefile = args[2];
+                s.Volume = 100;
+                s.SetOutputToWaveFile(wavefile, new SpeechAudioFormatInfo(48000, AudioBitsPerSample.Sixteen, AudioChannel.Stereo));
+            }
+        }
+        */
     }
 }

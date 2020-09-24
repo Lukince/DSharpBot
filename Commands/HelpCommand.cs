@@ -189,7 +189,7 @@ namespace DiscordBot.Commands
         }
 
         [Group("룰")]
-        class Rules
+        class Rules : BaseCommandModule
         {
             [Command("숫자야구게임")]
             public async Task NBGHelp(CommandContext ctx, string option = null)

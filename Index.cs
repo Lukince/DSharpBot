@@ -136,6 +136,7 @@ namespace DiscordBot
             commands.RegisterCommands<EvalCommand>();
             commands.RegisterCommands<TCPServer>();
             commands.RegisterCommands<Search>();
+            commands.RegisterCommands<RESTClient>();
 
             await discord.ConnectAsync();
             await Task.Delay(-1);

@@ -797,7 +797,7 @@ namespace DiscordBot
         }
 
         [Group("Admin"), CheckAdmin]
-        class Admin
+        class Admin : BaseCommandModule
         {
             private readonly string AdminId = "Data/AdminId.txt";
 
@@ -902,7 +902,7 @@ namespace DiscordBot
 
         [Group("Memo")]
         [BlackList, CheckAdmin, Check]
-        class Memo
+        class Memo : BaseCommandModule
         {
             readonly string memofile = "Data/Memo.txt";
 
