@@ -1,4 +1,5 @@
 ﻿using DiscordBot.Attributes;
+using DiscordBot.Configs;
 using DiscordBot.Exceptions;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
@@ -578,14 +579,14 @@ namespace DiscordBot
 
         [Description("도박")]
         [BlackList, AccountCheck]
-        class Gambling
+        class Gambling : BaseCommandModule
         {
-            uint Money = 0;
-            uint Cube = 0;
-
             [Command("갈림길"), RequireUserPermissions(Permissions.ManageMessages), DoNotUse]
             public async Task RightOrLeft(CommandContext ctx)
             {
+                uint Money = 0;
+                uint Cube = 0;
+
                 string Id = $"{IdLocation}/{ctx.User.Id}";
                 string json = File.ReadAllText(Id);
                 UserInfo ui = JsonConvert.DeserializeObject<UserInfo>(json);
@@ -682,32 +683,124 @@ namespace DiscordBot
                     string roljson = JsonConvert.SerializeObject(ui, Formatting.Indented);
                     File.WriteAllText(Id, roljson);
                 }
+
+                string RandomAddtion()
+                {
+                    int random = rnd.Next(1, 100);
+                    string s;
+
+                    if (1 <= random && random <= 30)
+                    {
+                        uint i = (uint)rnd.Next(1, 3);
+                        Money += i;
+                        s = $"{i}코인을 발견했다!";
+                    }
+                    else if (31 <= random && random <= 50)
+                    {
+                        uint i = (uint)rnd.Next(1, 2);
+                        Cube += i;
+                        s = $"큐브 {i}를 휙득했다!";
+                    }
+                    else if (51 <= random && random <= 80)
+                        s = "아무것도 없었다.";
+                    else
+                        s = null;
+
+                    return s;
+                }
             }
 
-            private string RandomAddtion()
+            [Command("주사위굴리기")]
+            public async Task RollDice(CommandContext ctx)
             {
-                int random = rnd.Next(1, 100);
-                string s;
-
-                if (1 <= random && random <= 30)
+                DiscordEmoji[] Dice = new DiscordEmoji[]
                 {
-                    uint i = (uint)rnd.Next(1, 3);
-                    Money += i;
-                    s = $"{i}코인을 발견했다!";
-                }
-                else if (31 <= random && random <= 50)
+                    DiscordEmoji.FromGuildEmote(ctx.Client, 718728815936929815),
+                    DiscordEmoji.FromGuildEmote(ctx.Client, 718728815760637953),
+                    DiscordEmoji.FromGuildEmote(ctx.Client, 718728816205234186),
+                    DiscordEmoji.FromGuildEmote(ctx.Client, 718728816096444526),
+                    DiscordEmoji.FromGuildEmote(ctx.Client, 718728815878340679),
+                    DiscordEmoji.FromGuildEmote(ctx.Client, 718728816138256394)
+                };
+
+                DiscordEmoji RandomEmoji = DiscordEmoji.FromGuildEmote(ctx.Client, 770226476922437663);
+
+                string[] s = new string[5];
+
+                for (int i = 0; i < 5; i++)
+                    s[i] = RandomEmoji.ToString();
+
+                var DiceEmbed = new DiscordEmbedBuilder()
                 {
-                    uint i = (uint)rnd.Next(1, 2);
-                    Cube += i;
-                    s = $"큐브 {i}를 휙득했다!";
+                    Title = "주사위 굴리기",
+                    Color = new DiscordColor(128, 255, 255)
+                }.AddField("결과", string.Join(' ', s)).Build();
+
+                var msg = await ctx.RespondAsync(embed: DiceEmbed);
+
+                await Task.Delay(TimeSpan.FromSeconds(1));
+
+                int[] results = new int[5];
+
+                for (int i = 0; i < 5; i++)
+                {
+                    int r = rnd.Next(0, 6);
+
+                    s[i] = Dice[r];
+                    results[i] = r;
+
+                    var ChangeEmbed = new DiscordEmbedBuilder()
+                    {
+                        Title = "주사위 굴리기",
+                        Color = new DiscordColor(128, 255, 255)
+                    }.AddField("결과", string.Join(' ', s)).Build();
+
+                    await msg.ModifyAsync(embed: ChangeEmbed);
+
+                    await Task.Delay(TimeSpan.FromSeconds(1));
                 }
-                else if (51 <= random && random <= 80)
-                    s = "아무것도 없었다.";
-                else
-                    s = null;
 
-                return s;
+                results = results.OrderBy(l => l).ToArray();
 
+                if (results.Distinct().Count() == 1) //야추 : 주사위 5개가 같음
+                {
+                    await ctx.RespondAsync("대박!");
+                    return;
+                }   
+                else if (results.Distinct().Count() == 5) //스트레이트 : 주사위 5개가 연속됨
+                {
+                    var r = results.Distinct();
+
+                    if (r.AllIn(1, 2, 3, 4))
+                    {
+                        await ctx.RespondAsync("스트레이트!");
+                        return;
+                    }
+                }
+                else if (results.Distinct().Count() == 2) // 풀하우스 / 포카
+                {
+                    var list = results.ToList();
+
+                    int Base = list[0];
+
+                    for (int i = 1; i < 5; i++)
+                    {
+                        if (list[i] != Base)
+                            list.RemoveAt(i);
+                    }
+
+                    if (list.Count == 4) // 포카 : 4개의 주사위가 같은 경우
+                    {
+                        await ctx.RespondAsync("포카인드!");
+                        return; 
+                    }
+                    else                // 풀하우스 : 3개가 같고 2개가 같은 경우
+                    {
+                        await ctx.RespondAsync("풀하우스!");
+                        return;
+                    }
+                }
+                await ctx.RespondAsync("꽝.. 다음기회에"); 
             }
         }
 

@@ -20,13 +20,15 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Security.Cryptography.X509Certificates;
+using System.Management.Automation;
 using System.Threading.Tasks;
 using static DiscordBot.Account;
 using static DiscordBot.Index;
 using static DiscordBot.Utils;
 using static DiscordBot.Variable;
 using static DSharpPlus.Entities.DiscordEmbedBuilder;
+using System.Collections.ObjectModel;
+using System.Text;
 
 namespace DiscordBot
 {
@@ -1187,6 +1189,55 @@ namespace DiscordBot
                 StringCommands += $"`{c.Key}` ";
 
             await ctx.RespondAsync(embed: dmb.AddField("Management Command List", StringCommands).Build());
+        }
+
+        [Command("PowerShell")]
+        public async Task PowerShell(CommandContext ctx, [RemainingText] string command)
+            => await ctx.RespondAsync($"{RunScript(command)}");
+
+        private string RunScript(string scriptText)
+        {
+            // create Powershell runspace
+
+            System.Management.Automation.Runspaces.Runspace runspace = System.Management.Automation.Runspaces.RunspaceFactory.CreateRunspace();
+
+            // open it
+
+            runspace.Open();
+
+            // create a pipeline and feed it the script text
+
+            System.Management.Automation.Runspaces.Pipeline pipeline = runspace.CreatePipeline();
+            pipeline.Commands.AddScript(scriptText);
+
+            // add an extra command to transform the script
+            // output objects into nicely formatted strings
+
+            // remove this line to get the actual objects
+            // that the script returns. For example, the script
+
+            // "Get-Process" returns a collection
+            // of System.Diagnostics.Process instances.
+
+            pipeline.Commands.Add("Out-String");
+
+            // execute the script
+
+            Collection<PSObject> results = pipeline.Invoke();
+
+            // close the runspace
+
+            runspace.Close();
+
+            // convert the script result into a single string
+
+            StringBuilder stringBuilder = new StringBuilder();
+            foreach (PSObject obj in results)
+            {
+                stringBuilder.AppendLine(obj.ToString());
+            }
+
+            return stringBuilder.ToString();
         }
     }
 }

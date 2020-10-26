@@ -59,7 +59,7 @@ namespace DiscordBot.Configs
             List<T> list = new List<T>();
             foreach (T data in array)
             {
-                list.Add(func.Invoke(data));
+                list.Add(func(data));
             }
 
             return list.ToArray();
@@ -108,6 +108,14 @@ namespace DiscordBot.Configs
                 if (cnt.Contains(value))
                     return true;
             return false;
+        }
+
+        public static bool AllIn(this IEnumerable<int> cnt, params int[] i)
+        {
+            foreach (var item in i)
+                if (!cnt.Contains(item))
+                    return false;
+            return true;
         }
     }
 }

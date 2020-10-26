@@ -109,7 +109,7 @@ namespace DiscordBot
 
             commands = discord.UseCommandsNext(new CommandsNextConfiguration
             {
-                StringPrefixes = new string[] { "라히야" },
+                StringPrefixes = new string[] { "라히야", "r;;" },
                 EnableMentionPrefix = true,
                 EnableDefaultHelp = false,
                 IgnoreExtraArguments = false,
